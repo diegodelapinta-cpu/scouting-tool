@@ -1,0 +1,1692 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🏀 Scouting Tool · Coeficientes de Liga</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0e0f11;--surface:#16181c;--surface2:#1e2026;--surface3:#252830;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);
+  --text:#f0f0ee;--text2:#9a9a96;--text3:#5a5a58;
+  --accent:#e8ff47;--accent2:#b8cc2a;
+  --blue:#4d9fff;--green:#3dcc8e;--amber:#ffb347;--red:#ff6b6b;--purple:#c084fc;
+  --r:8px;--r-lg:12px;
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.5;min-height:100vh;display:flex;flex-direction:column}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--surface)}
+::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:3px}
+
+/* HEADER */
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;gap:16px;height:56px;position:sticky;top:0;z-index:100;flex-wrap:wrap}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:16px;letter-spacing:-0.02em;display:flex;align-items:center;gap:8px}
+.logo-badge{background:var(--accent);color:#0e0f11;font-size:11px;font-weight:700;padding:2px 7px;border-radius:4px;font-family:'DM Mono',monospace}
+.header-nav{display:flex;gap:2px;flex-wrap:wrap}
+.nav-btn{padding:6px 13px;font-size:13px;font-weight:500;color:var(--text2);cursor:pointer;border-radius:var(--r);background:none;border:none;transition:all 0.15s;font-family:'Inter',sans-serif;white-space:nowrap}
+.nav-btn:hover{background:var(--surface2);color:var(--text)}
+.nav-btn.active{background:var(--surface3);color:var(--accent)}
+.header-right{margin-left:auto}
+.coef-pill{background:var(--surface3);border:1px solid var(--border2);border-radius:20px;padding:4px 12px;font-family:'DM Mono',monospace;font-size:12px;color:var(--text2)}
+.coef-pill span{color:var(--accent);font-weight:500}
+.stats-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:8px 24px;display:flex;gap:20px;font-family:'DM Mono',monospace;font-size:11px;color:var(--text3);flex-wrap:wrap}
+.stats-bar span{color:var(--text2)}
+
+/* MAIN */
+.main{flex:1;max-width:1280px;margin:0 auto;padding:20px 24px;width:100%}
+.section{display:none}
+.section.active{display:block}
+
+/* CARD */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px 20px;margin-bottom:14px}
+.card-title{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--text3);margin-bottom:14px}
+
+/* TOOLBAR */
+.toolbar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+.search-input{flex:1;min-width:200px;padding:8px 12px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);font-size:13px;color:var(--text);outline:none;font-family:'Inter',sans-serif}
+.search-input::placeholder{color:var(--text3)}
+.search-input:focus{border-color:var(--accent)}
+.filter-btn{padding:7px 12px;border:1px solid var(--border2);border-radius:var(--r);font-size:12px;font-weight:500;cursor:pointer;background:var(--surface2);color:var(--text2);transition:all 0.12s;font-family:'Inter',sans-serif;white-space:nowrap}
+.filter-btn:hover{color:var(--text)}
+.filter-btn.active{background:var(--accent);color:#0e0f11;border-color:var(--accent)}
+
+/* TABLE */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+thead th{text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);padding:8px 12px;border-bottom:1px solid var(--border);white-space:nowrap;font-family:'DM Mono',monospace}
+tbody td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:var(--surface2)}
+.bar-bg{height:4px;background:var(--surface3);border-radius:2px;overflow:hidden;width:100px}
+.bar-fill{height:100%;border-radius:2px}
+.tier-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:500;font-family:'DM Mono',monospace}
+.coef-num{font-family:'DM Mono',monospace;font-size:14px;font-weight:500}
+.div-badge{font-size:10px;padding:2px 6px;border-radius:3px;background:var(--surface3);color:var(--text3);font-family:'DM Mono',monospace}
+
+/* LEGEND */
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px}
+.leg{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2)}
+.leg-dot{width:8px;height:8px;border-radius:2px}
+
+/* FORM */
+.form-group{margin-bottom:12px}
+.form-group label{display:block;font-size:10px;font-weight:500;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.05em;font-family:'DM Mono',monospace}
+select,input[type=number],input[type=text]{width:100%;padding:7px 10px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);font-size:13px;color:var(--text);outline:none;font-family:'Inter',sans-serif}
+select:focus,input:focus{border-color:var(--accent)}
+select option{background:var(--surface2)}
+
+/* CALC */
+.calc-grid{display:grid;grid-template-columns:300px 1fr;gap:14px}
+@media(max-width:800px){.calc-grid{grid-template-columns:1fr}}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:7px;margin-bottom:12px}
+.stat-inp-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:10px}
+.stat-inp-card label{font-size:10px;color:var(--text3);font-weight:500;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.05em;font-family:'DM Mono',monospace}
+.stat-inp-card input{width:100%;background:transparent;border:none;border-bottom:1px solid var(--border2);border-radius:0;padding:3px 0;font-size:17px;font-weight:500;color:var(--text);font-family:'DM Mono',monospace}
+.stat-inp-card input:focus{border-bottom-color:var(--accent);outline:none}
+.results-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:7px}
+.result-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:10px;text-align:center}
+.r-label{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:5px;text-transform:uppercase}
+.r-raw{font-size:13px;color:var(--text2);font-family:'DM Mono',monospace}
+.r-arrow{font-size:11px;color:var(--text3);margin:2px 0}
+.r-adj{font-size:20px;font-weight:500;color:var(--accent);font-family:'DM Mono',monospace}
+.r-delta{font-size:11px;font-family:'DM Mono',monospace;margin-top:1px}
+.coef-display{font-family:'Syne',sans-serif;font-size:44px;font-weight:800;color:var(--accent);line-height:1;margin-bottom:3px}
+.coef-sub{font-size:12px;color:var(--text3)}
+
+/* COMPARISON */
+.player-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin-bottom:14px}
+.player-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:12px;position:relative}
+.player-card-header{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.player-num-badge{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:'DM Mono',monospace;flex-shrink:0}
+.player-name-input{flex:1;background:transparent;border:none;border-bottom:1px solid var(--border2);border-radius:0;font-size:13px;font-weight:600;color:var(--text);font-family:'Syne',sans-serif;padding:2px 0}
+.player-name-input:focus{outline:none;border-bottom-color:var(--accent)}
+.remove-btn{position:absolute;top:8px;right:8px;background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;line-height:1;width:18px;height:18px;display:flex;align-items:center;justify-content:center;border-radius:4px}
+.remove-btn:hover{color:var(--red);background:rgba(255,107,107,0.1)}
+.player-stat-row{display:flex;align-items:center;gap:5px;margin-bottom:4px}
+.player-stat-label{font-size:10px;color:var(--text3);flex:1;font-family:'DM Mono',monospace}
+.player-stat-input{width:64px;padding:3px 5px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;font-size:12px;font-weight:500;text-align:right;color:var(--text);font-family:'DM Mono',monospace}
+.player-stat-input:focus{outline:none;border-color:var(--accent)}
+.add-player-btn{border:1.5px dashed var(--border2);border-radius:var(--r-lg);background:none;cursor:pointer;width:100%;color:var(--text3);font-size:13px;font-family:'Inter',sans-serif;transition:all 0.15s;display:flex;align-items:center;justify-content:center;gap:6px;min-height:100px}
+.add-player-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(232,255,71,0.03)}
+.comp-table{width:100%;border-collapse:collapse;min-width:500px}
+.comp-table th{padding:9px 12px;font-size:10px;font-weight:600;border-bottom:1px solid var(--border);white-space:nowrap;text-align:center;font-family:'DM Mono',monospace;letter-spacing:0.05em;text-transform:uppercase}
+.comp-table th:first-child{text-align:left}
+.comp-table td{padding:8px 12px;border-bottom:1px solid var(--border);text-align:center;font-family:'DM Mono',monospace;font-size:13px}
+.comp-table td:first-child{text-align:left;font-family:'Inter',sans-serif;font-size:12px;color:var(--text2);white-space:nowrap}
+.comp-table tr:last-child td{border-bottom:none}
+.comp-table tbody tr:hover td{background:var(--surface2)}
+.player-league-select{width:100%;margin-bottom:8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:11px;color:var(--text);font-family:'Inter',sans-serif}
+.player-stat-scroll{max-height:250px;overflow-y:auto;padding-right:2px}
+
+/* PHOTO */
+.photo-area{display:flex;align-items:center;gap:12px;margin-bottom:4px}
+.photo-circle{width:72px;height:72px;border-radius:50%;background:var(--surface3);border:2px solid var(--border2);flex-shrink:0;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;cursor:pointer}
+.photo-circle:hover .photo-overlay{opacity:1}
+.photo-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.2s;border-radius:50%;font-size:11px;color:#fff;text-align:center;line-height:1.3;padding:4px}
+.photo-initials{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--accent);letter-spacing:-0.02em;pointer-events:none}
+.photo-img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.photo-controls{flex:1;display:flex;flex-direction:column;gap:5px}
+.photo-url-input{width:100%;padding:6px 8px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);font-size:11px;color:var(--text);outline:none;font-family:'Inter',sans-serif}
+.photo-url-input:focus{border-color:var(--accent)}
+.photo-btn-row{display:flex;gap:5px}
+.btn-photo{padding:5px 10px;border-radius:var(--r);font-size:11px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.12s;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);white-space:nowrap}
+.btn-photo:hover{background:var(--surface3);color:var(--text)}
+.btn-photo.google{border-color:rgba(66,133,244,0.4);color:#4285f4}
+.btn-photo.google:hover{background:rgba(66,133,244,0.1)}
+/* PDF BUTTON */
+.btn-pdf{padding:8px 16px;border-radius:var(--r);font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.14s;border:1px solid rgba(255,107,107,0.4);background:rgba(255,107,107,0.08);color:#ff6b6b;display:inline-flex;align-items:center;gap:6px}
+.btn-pdf:hover{background:rgba(255,107,107,0.16);border-color:rgba(255,107,107,0.7)}
+.btn-pdf.loading{opacity:0.6;cursor:not-allowed}
+/* POSITION + AGE row */
+.player-meta-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+
+.proj-layout{display:grid;grid-template-columns:320px 1fr;gap:16px}
+@media(max-width:900px){.proj-layout{grid-template-columns:1fr}}
+.proj-stat-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)}
+.proj-stat-row:last-child{border-bottom:none}
+.proj-stat-check{width:14px;height:14px;accent-color:var(--accent);cursor:pointer;flex-shrink:0}
+.proj-stat-label{flex:1;font-size:12px;color:var(--text2)}
+.proj-stat-val{width:70px;padding:3px 7px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;font-size:13px;font-weight:500;text-align:right;color:var(--text);font-family:'DM Mono',monospace}
+.proj-stat-val:focus{outline:none;border-color:var(--accent)}
+.target-league-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:6px;max-height:280px;overflow-y:auto;padding:2px}
+.target-check-card{padding:8px 10px;border-radius:var(--r);border:1px solid var(--border);cursor:pointer;transition:all 0.12s;display:flex;align-items:center;gap:7px;background:var(--surface2)}
+.target-check-card:hover{border-color:var(--border2)}
+.target-check-card.selected{border-color:var(--accent);background:rgba(232,255,71,0.06)}
+.target-check-card input[type=checkbox]{accent-color:var(--accent);width:13px;height:13px;cursor:pointer;flex-shrink:0}
+.target-check-card .tc-name{font-size:12px;font-weight:500;line-height:1.2}
+.target-check-card .tc-coef{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;margin-top:1px}
+.chart-container{position:relative;width:100%;height:360px}
+.proj-metric-tabs{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:14px}
+.proj-metric-btn{padding:5px 11px;border-radius:var(--r);border:1px solid var(--border2);background:var(--surface2);color:var(--text2);font-size:12px;cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.12s}
+.proj-metric-btn:hover{color:var(--text)}
+.proj-metric-btn.active{background:var(--surface3);color:var(--accent);border-color:var(--accent)}
+.proj-src-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(232,255,71,0.1);border:1px solid rgba(232,255,71,0.25);border-radius:6px;padding:4px 10px;font-size:12px;color:var(--accent);font-family:'DM Mono',monospace;margin-bottom:14px}
+.proj-direction-row{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+
+/* BUTTONS */
+.btn{padding:7px 14px;border-radius:var(--r);font-size:13px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.12s;border:1px solid var(--border2);background:var(--surface2);color:var(--text)}
+.btn:hover{background:var(--surface3)}
+.btn-accent{background:var(--accent);color:#0e0f11;border-color:var(--accent);font-weight:600}
+.btn-accent:hover{background:var(--accent2);border-color:var(--accent2)}
+.info-box{background:rgba(232,255,71,0.05);border:1px solid rgba(232,255,71,0.15);border-radius:var(--r);padding:9px 13px;font-size:12px;color:var(--accent2);margin-bottom:14px;line-height:1.6}
+.empty-state{text-align:center;padding:50px 20px;color:var(--text3);font-size:14px}
+.method-item{margin-bottom:14px;padding-left:12px;border-left:2px solid var(--accent)}
+.method-item strong{display:block;font-size:13px;font-weight:600;margin-bottom:3px}
+.method-item p{font-size:12px;color:var(--text2);line-height:1.6}
+.proj-visual-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-top:14px}
+.proj-vis-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:12px;transition:border-color 0.12s}
+.proj-vis-card.source-card{border-color:rgba(232,255,71,0.4);background:rgba(232,255,71,0.04)}
+.proj-vis-card .pvc-flag{font-size:20px;margin-bottom:6px}
+.proj-vis-card .pvc-name{font-size:11px;font-weight:600;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.proj-vis-card .pvc-coef{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:8px}
+.proj-vis-card .pvc-stat{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px}
+.proj-vis-card .pvc-stat-label{font-size:10px;color:var(--text3)}
+.proj-vis-card .pvc-stat-val{font-size:14px;font-weight:500;font-family:'DM Mono',monospace}
+.proj-vis-card .pvc-bar{height:3px;border-radius:2px;margin-top:2px;margin-bottom:5px}
+
+/* LIGHT THEME */
+[data-theme="light"]{
+  --bg:#f2f3f5;--surface:#ffffff;--surface2:#ecedf0;--surface3:#e0e2e6;
+  --border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.14);
+  --text:#1a1b1d;--text2:#555660;--text3:#9899a0;
+  --accent:#4a7800;--accent2:#2e5200;
+  --green:#0e8a52;--amber:#b06000;--red:#c02020;
+}
+[data-theme="light"] .header,.stats-bar,[data-theme="light"] .card{background:var(--surface)}
+[data-theme="light"] body{background:var(--bg)}
+
+/* PROFILE CARDS */
+.prfl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:10px}
+.prfl-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px;cursor:pointer;transition:all 0.15s;position:relative}
+.prfl-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.prfl-photo{width:48px;height:48px;border-radius:50%;background:var(--surface3);border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;overflow:hidden;font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:var(--accent);margin-bottom:8px;flex-shrink:0}
+.prfl-photo img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.prfl-name{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;margin-bottom:3px}
+.prfl-meta{font-size:11px;color:var(--text2);margin-bottom:6px}
+.prfl-stats{display:flex;gap:6px;flex-wrap:wrap}
+.prfl-stat{font-size:10px;font-family:'DM Mono',monospace;background:var(--surface2);padding:2px 6px;border-radius:4px;color:var(--text2)}
+.prfl-del{position:absolute;top:8px;right:8px;background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;border-radius:4px;padding:2px 5px}
+.prfl-del:hover{color:var(--red);background:rgba(255,107,107,0.1)}
+.prfl-date{font-size:9.5px;color:var(--text3);margin-top:6px;font-family:'DM Mono',monospace}
+
+/* RADAR + CURVE */
+.radar-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px}
+@media(max-width:700px){.radar-grid{grid-template-columns:1fr}}
+
+/* PERCENTILE BARS */
+.pct-section{margin-top:14px}
+.pct-row{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.pct-label{width:130px;font-size:11px;color:var(--text2);flex-shrink:0}
+.pct-bar-wrap{flex:1;height:5px;background:var(--surface3);border-radius:3px;overflow:hidden}
+.pct-bar-fill{height:100%;border-radius:3px;transition:width .4s}
+.pct-val{width:80px;font-size:10px;font-family:'DM Mono',monospace;color:var(--text2);text-align:right}
+
+/* CSV DROP */
+.csv-drop{border:2px dashed var(--border2);border-radius:var(--r);padding:20px;text-align:center;cursor:pointer;transition:all 0.15s;font-size:12px;color:var(--text3);margin-bottom:14px}
+.csv-drop:hover,.csv-drop.over{border-color:var(--accent);color:var(--accent);background:rgba(232,255,71,0.04)}
+
+/* STAR DISCOUNT ALERT */
+.discount-alert{background:rgba(255,179,71,0.1);border:1px solid rgba(255,179,71,0.3);border-radius:var(--r);padding:10px 14px;font-size:12px;color:var(--amber);margin-bottom:12px;line-height:1.6;display:none}
+
+/* PER-36 TOGGLE */
+.toggle-row{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px}
+.toggle-item{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2);cursor:pointer}
+.toggle-item input{accent-color:var(--accent);width:13px;height:13px}
+
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="logo"><span>🏀</span><span>SCOUTING TOOL</span><span class="logo-badge">v5.0</span></div>
+  <nav class="header-nav">
+    <button class="nav-btn active" onclick="showSection('ligas',this)">Ligas</button>
+    <button class="nav-btn" onclick="showSection('proyeccion',this)">Proyección</button>
+    <button class="nav-btn" onclick="showSection('calculadora',this)">Calculadora</button>
+    <button class="nav-btn" onclick="showSection('comparativa',this)">Comparativa</button>
+    <button class="nav-btn" onclick="showSection('metodologia',this)">Metodología</button>
+    <button class="nav-btn" onclick="showSection('perfiles',this)">Perfiles</button>
+  </nav>
+  <div class="header-right" style="display:flex;align-items:center;gap:8px"><button id="theme-btn" onclick="toggleTheme()" style="width:32px;height:32px;border-radius:50%;background:var(--surface2);border:1px solid var(--border2);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center" title="Tema">🌙</button><div class="coef-pill">NBA = <span>1.00</span> · referencia</div></div>
+</header>
+
+<div class="stats-bar">
+  <span id="sb-ligas">— ligas</span>
+  <span>·</span>
+  <span>12 métricas</span>
+  <span>·</span>
+  <span id="sb-divs">— con 2ª divisiones</span>
+  <span>·</span>
+  <span id="sb-profiles">0 perfiles</span><span>·</span><span>Baloncesto · ajuste por liga</span>
+</div>
+
+<main class="main">
+
+<!-- ====== LIGAS ====== -->
+<div id="sec-ligas" class="section active">
+  <div class="card">
+    <div class="toolbar">
+      <input type="text" class="search-input" id="search-input" placeholder="🔍  Buscar liga o país..." oninput="renderLeagues()">
+      <button class="filter-btn active" onclick="setFilter('all',this)">Todas</button>
+      <button class="filter-btn" onclick="setFilter('americas',this)">Américas</button>
+      <button class="filter-btn" onclick="setFilter('europe',this)">Europa</button>
+      <button class="filter-btn" onclick="setFilter('asia',this)">Asia / Pac.</button>
+      <button class="filter-btn" onclick="setFilter('africa',this)">África / Med.</button>
+      <button class="filter-btn" onclick="setFilter('2nd',this)">2ª Divisiones</button>
+    </div>
+    <div class="legend">
+      <span class="leg"><span class="leg-dot" style="background:#e8ff47"></span>Élite (≥0.85)</span>
+      <span class="leg"><span class="leg-dot" style="background:#3dcc8e"></span>Alta (0.70–0.84)</span>
+      <span class="leg"><span class="leg-dot" style="background:#ffb347"></span>Media-alta (0.60–0.69)</span>
+      <span class="leg"><span class="leg-dot" style="background:#5a5a58"></span>Media (0.45–0.59)</span>
+      <span class="leg"><span class="leg-dot" style="background:#3a3a38"></span>Baja (&lt;0.45)</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th></th><th>Liga</th><th>País</th><th>Div.</th><th>Región</th><th>Nivel</th><th>Coef.</th><th style="min-width:110px">Visual</th></tr></thead>
+        <tbody id="league-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ====== PROYECCIÓN ====== -->
+<div id="sec-proyeccion" class="section">
+  <div class="discount-alert" id="proj-discount-top"></div>
+  <div class="info-box">🎯 Introduce las estadísticas de un jugador en su liga de origen y selecciona las ligas destino. El sistema calcula cómo se traducirían esas estadísticas si fichara por cada una de ellas.</div>
+  <div class="proj-layout">
+    <div>
+      <div class="card">
+        <div class="card-title">Jugador y liga de origen</div>
+        <div class="form-group">
+          <label>Foto del jugador</label>
+          <div class="photo-area">
+            <div class="photo-circle" onclick="document.getElementById('proj-photo-url').focus()">
+              <img id="proj-photo-img" class="photo-img" style="display:none">
+              <span id="proj-photo-initials" class="photo-initials">J</span>
+              <div class="photo-overlay">Cambiar foto</div>
+            </div>
+            <div class="photo-controls">
+              <input type="text" class="photo-url-input" id="proj-photo-url" placeholder="Pegar URL de imagen..." oninput="updatePlayerPhoto()">
+              <div class="photo-btn-row">
+                <button class="btn-photo google" onclick="searchPlayerPhotoGoogle()">🔍 Google Imágenes</button>
+                <button class="btn-photo" onclick="clearPlayerPhoto()">✕ Quitar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="form-group"><label>Nombre del jugador</label><input type="text" id="proj-player-name" value="Jugador A" oninput="updateInitials();renderProjVisuals()"></div>
+        <div class="player-meta-row">
+          <div class="form-group" style="margin-bottom:0"><label>Posición</label>
+            <select id="proj-position">
+              <option value="">—</option>
+              <option>Base (PG)</option><option>Escolta (SG)</option><option>Alero (SF)</option>
+              <option>Ala-Pívot (PF)</option><option>Pívot (C)</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:0"><label>Edad</label>
+            <input type="number" id="proj-age" placeholder="—" min="15" max="50" step="1" style="width:100%">
+          </div>
+        </div>
+        <div class="form-group"><label>Liga de origen</label><select id="proj-src-league" onchange="renderProjVisuals();checkDiscount()"></select></div>
+        <div class="form-group"><label>Minutos / partido</label><input type="number" id="proj-min" placeholder="32" min="1" max="48" step="0.5" oninput="renderProjVisuals()"></div>
+        <div class="toggle-row">
+          <label class="toggle-item"><input type="checkbox" id="proj-per36" onchange="renderProjVisuals()"> per-36 min</label>
+          <label class="toggle-item"><input type="checkbox" id="proj-posadj" onchange="renderProjVisuals()"> Ajuste posición</label>
+        </div>
+        <div class="form-group"><label>Notas de scouting</label><textarea id="proj-notes" placeholder="Observaciones, contexto, potencial..." style="resize:vertical;min-height:68px;font-size:12px;line-height:1.5"></textarea></div>
+        <div style="display:flex;gap:7px;margin-top:4px;flex-wrap:wrap">
+          <button class="btn btn-accent" onclick="saveProfile()">💾 Guardar perfil</button>
+        </div>
+      </div>
+      <!-- STAR DISCOUNT ALERT (outside card) -->
+      <div class="discount-alert" id="discount-alert"></div>
+      <div class="card">
+        <div class="card-title">Estadísticas brutas (por partido)</div>
+        <div id="proj-stat-inputs"></div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-title">Ligas destino — selecciona para comparar</div>
+        <div class="toolbar" style="margin-bottom:10px">
+          <input type="text" class="search-input" id="proj-target-search" placeholder="Buscar liga destino..." oninput="renderTargetLeagues()" style="min-width:140px">
+          <button class="btn" onclick="selectQuickTargets('top')">Top ligas</button>
+          <button class="btn" onclick="selectQuickTargets('same')">Mismo nivel</button>
+          <button class="btn" onclick="clearTargets()">Limpiar</button>
+        </div>
+        <div class="target-league-grid" id="target-league-grid"></div>
+      </div>
+      <div class="card" id="proj-results-card" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+          <div class="card-title" style="margin-bottom:0">Visualización de proyección</div>
+          <button class="btn-pdf" id="pdf-btn" onclick="generatePDF()">⬇ Descargar informe PDF</button>
+        </div>
+        <div class="proj-direction-row">
+          <div class="proj-src-badge" id="proj-src-badge">⬡ —</div>
+          <span style="font-size:12px;color:var(--text3)">→ estadísticas proyectadas por liga destino</span>
+        </div>
+        <div class="proj-metric-tabs" id="proj-metric-tabs"></div>
+        <div class="chart-container"><canvas id="proj-chart"></canvas></div>
+        <div class="proj-visual-grid" id="proj-visual-grid"></div>
+        <!-- RADAR + CURVE -->
+        <div class="radar-grid" id="radar-grid" style="display:none">
+          <div>
+            <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);margin:14px 0 8px">Radar de perfil · percentiles NBA</div>
+            <div style="position:relative;height:250px"><canvas id="radar-chart"></canvas></div>
+          </div>
+          <div id="curve-col" style="display:none">
+            <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);margin:14px 0 8px">Curva de desarrollo proyectada</div>
+            <div style="position:relative;height:220px"><canvas id="curve-chart"></canvas></div>
+            <div style="font-size:10px;color:var(--text3);margin-top:6px;font-family:'DM Mono',monospace" id="curve-note"></div>
+          </div>
+        </div>
+        <!-- PERCENTILE BARS -->
+        <div class="pct-section" id="pct-section" style="display:none">
+          <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);margin-bottom:10px">Percentiles NBA por métrica</div>
+          <div id="pct-bars"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== CALCULADORA ====== -->
+<div id="sec-calculadora" class="section">
+  <div class="info-box">⚡ Estadísticas brutas del jugador → equivalente NBA. Los % de tiro usan ajuste diferencial respecto a la media de liga, no multiplicación directa.</div>
+  <div class="calc-grid">
+    <div>
+      <div class="card">
+        <div class="card-title">Configuración</div>
+        <div class="form-group"><label>Liga de origen</label><select id="calc-league" onchange="calcUpdate()"></select></div>
+        <div style="margin-bottom:16px">
+          <div style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:5px">Coeficiente aplicado</div>
+          <div class="coef-display" id="calc-coef-disp">1.00</div>
+          <div class="coef-sub" id="calc-coef-sub">NBA · referencia</div>
+        </div>
+        <div class="form-group"><label>Min./partido (per-36)</label><input type="number" id="calc-min-per36" placeholder="32" min="1" max="48" step="0.5" oninput="calcUpdate()"></div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;font-size:12px;color:var(--text2)">
+          <input type="checkbox" id="calc-show-per36" onchange="calcUpdate()" style="width:auto;accent-color:var(--acc,#e8ff47)">
+          <label for="calc-show-per36" style="cursor:pointer">Mostrar per-36 min</label>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Estadísticas brutas (por partido)</div>
+        <div class="stats-grid" id="stats-inputs-grid"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Estadísticas ajustadas — equivalente NBA</div>
+      <div class="results-grid" id="calc-results"></div>
+      <div style="margin-top:14px;padding:10px 12px;background:var(--surface2);border-radius:var(--r);border:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--text3);line-height:1.9;font-family:'DM Mono',monospace">
+          * Volumen (pts/reb/ast/stl/blk/tov/pir/per) → valor × coeficiente<br>
+          * % tiro (fg/3p/ft/ts) → delta vs media liga × coef + media NBA<br>
+          * Los valores negativos en delta indican bajada al subir de nivel
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== COMPARATIVA ====== -->
+<div id="sec-comparativa" class="section">
+  <div class="info-box">🆚 Hasta 6 jugadores de distintas ligas. Estadísticas normalizadas al nivel NBA. El color indica quién domina cada métrica.</div>
+  <div class="player-grid" id="player-cards-container"></div>
+  <div style="margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn btn-accent" onclick="addPlayer()">+ Añadir jugador</button>
+    <button class="btn" onclick="clearPlayers()">Limpiar todo</button>
+  </div>
+  <div id="comp-table-container"></div>
+</div>
+
+<!-- ====== METODOLOGÍA ====== -->
+<div id="sec-metodologia" class="section">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+    <div>
+      <div class="card">
+        <div class="card-title">Fundamentos metodológicos</div>
+        <div class="method-item"><strong>Análisis de transferencias históricas (≈60%)</strong><p>Comparación del rendimiento antes y después de cambiar de liga, ajustando por edad y adaptación. Se estima la "depreciación estadística" real de cada liga respecto a la NBA.</p></div>
+        <div class="method-item"><strong>Competición interligas head-to-head (≈25%)</strong><p>EuroLeague, EuroCup, FIBA Champions League y Mundiales FIBA calibran el gap competitivo entre ligas nacionales.</p></div>
+        <div class="method-item"><strong>Modelos académicos (≈15%)</strong><p>Goossens, Jacimovic et al. sobre EuroLeague; modelos de Synergy Sports y Basketball-Reference.</p></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Rangos de referencia</div>
+        <table class="comp-table">
+          <thead><tr><th style="text-align:left">Rango</th><th>Coef.</th><th>Descuento</th><th>Ejemplo</th></tr></thead>
+          <tbody>
+            <tr><td>Élite mundial</td><td style="color:var(--accent)">0.85–1.00</td><td>0–15%</td><td>NBA, EuroLeague</td></tr>
+            <tr><td>Alta competición</td><td style="color:var(--green)">0.70–0.84</td><td>16–30%</td><td>ACB, BSL, EuroCup</td></tr>
+            <tr><td>Media-alta</td><td style="color:var(--amber)">0.60–0.69</td><td>31–40%</td><td>Pro A, BBL, NBL Au</td></tr>
+            <tr><td>Nivel medio</td><td style="color:var(--text2)">0.50–0.59</td><td>41–50%</td><td>CBA, KBL, LNBP</td></tr>
+            <tr><td>Nivel bajo</td><td style="color:var(--text3)">0.35–0.49</td><td>>50%</td><td>2ª div. débiles</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-title">Limitaciones y ajustes manuales</div>
+        <div class="method-item"><strong>Star discount por dominio</strong><p>Estrella dominante en liga tier 3-4 tiene stats infladas más de lo que el coeficiente captura. Reducir 5-10% adicional.</p></div>
+        <div class="method-item"><strong>Porcentajes de tiro no lineales</strong><p>El nivel defensivo comprime porcentajes de forma no lineal. Un 55% FG en ACB no equivale al mismo % en NBA.</p></div>
+        <div class="method-item"><strong>Posición y rol</strong><p>Bases sufren más en asistencias al subir (defensa organizada). Pívots sufren más en FG%. Aleros más estables.</p></div>
+        <div class="method-item"><strong>Edad y proyección</strong><p>Esta herramienta mide rendimiento actual, no proyección. Menores de 23: añadir prima de desarrollo 5-15% sobre valores ajustados.</p></div>
+        <div class="method-item"><strong>Minutaje y pace</strong><p>Complementar siempre con per-36 o per-100 posesiones para comparar ligas con ritmos muy distintos.</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ====== PERFILES ====== -->
+<div id="sec-perfiles" class="section">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+    <div style="font-size:14px;font-weight:600">Perfiles guardados <span id="prof-count" style="font-size:12px;color:var(--text3)"></span></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" onclick="document.getElementById('csv-input').click()">📂 Importar CSV</button>
+      <button class="btn" style="border-color:rgba(255,107,107,0.4);color:var(--red)" onclick="clearAllProfiles()">🗑 Borrar todos</button>
+    </div>
+  </div>
+  <input type="file" id="csv-input" accept=".csv,.txt" style="display:none" onchange="handleCSVFile(event)">
+  <div class="csv-drop" id="csv-drop" onclick="document.getElementById('csv-input').click()" 
+       ondragover="event.preventDefault();this.classList.add('over')" 
+       ondragleave="this.classList.remove('over')" 
+       ondrop="handleCSVDrop(event)">
+    📥 Arrastra un CSV aquí o haz clic para importar estadísticas de jugadores<br>
+    <span style="font-size:10px;opacity:.65">Columnas: nombre, liga, pts, reb, ast, stl, blk, tov, fg, 3p, ft, ts, pir, per, edad, posicion, notas</span>
+  </div>
+  <div class="prfl-grid" id="profiles-grid"></div>
+</div>
+
+</main>
+
+<script>
+/* ==================== DATOS ==================== */
+const leagues = [
+  // ---- ÉLITE ----
+  {name:"NBA",country:"EE.UU.",region:"americas",div:1,coef:1.00,tier:1,flag:"🇺🇸"},
+  {name:"EuroLeague",country:"Europa (top)",region:"europe",div:1,coef:0.88,tier:1,flag:"🏆"},
+  // ---- PRIMERA DIVISIONES EUROPA ----
+  {name:"ACB Liga Endesa",country:"España",region:"europe",div:1,coef:0.83,tier:2,flag:"🇪🇸"},
+  {name:"EuroCup",country:"Europa",region:"europe",div:1,coef:0.80,tier:2,flag:"🏆"},
+  {name:"Basketbol Süper Ligi",country:"Turquía",region:"europe",div:1,coef:0.79,tier:2,flag:"🇹🇷"},
+  {name:"Lega Basket Serie A",country:"Italia",region:"europe",div:1,coef:0.75,tier:2,flag:"🇮🇹"},
+  {name:"HEBA A1",country:"Grecia",region:"europe",div:1,coef:0.75,tier:2,flag:"🇬🇷"},
+  {name:"VTB United League",country:"Rusia/Bálticos",region:"europe",div:1,coef:0.72,tier:2,flag:"🌍"},
+  {name:"Betclic Elite (Pro A)",country:"Francia",region:"europe",div:1,coef:0.73,tier:3,flag:"🇫🇷"},
+  {name:"easyCredit BBL",country:"Alemania",region:"europe",div:1,coef:0.71,tier:3,flag:"🇩🇪"},
+  {name:"Premier League Basket",country:"Israel",region:"europe",div:1,coef:0.70,tier:3,flag:"🇮🇱"},
+  {name:"ABA Liga",country:"Adriático",region:"europe",div:1,coef:0.67,tier:3,flag:"🌍"},
+  {name:"LKL",country:"Lituania",region:"europe",div:1,coef:0.64,tier:3,flag:"🇱🇹"},
+  {name:"PLK Ekstraklasa",country:"Polonia",region:"europe",div:1,coef:0.63,tier:3,flag:"🇵🇱"},
+  {name:"KLS Superliga",country:"Serbia",region:"europe",div:1,coef:0.61,tier:3,flag:"🇷🇸"},
+  {name:"Ethias League",country:"Bélgica",region:"europe",div:1,coef:0.60,tier:3,flag:"🇧🇪"},
+  {name:"Superleague Ucrania",country:"Ucrania",region:"europe",div:1,coef:0.60,tier:3,flag:"🇺🇦"},
+  {name:"DBL",country:"Países Bajos",region:"europe",div:1,coef:0.59,tier:4,flag:"🇳🇱"},
+  {name:"LPB",country:"Portugal",region:"europe",div:1,coef:0.58,tier:4,flag:"🇵🇹"},
+  {name:"Basketligan",country:"Suecia",region:"europe",div:1,coef:0.58,tier:4,flag:"🇸🇪"},
+  {name:"Korisliiga",country:"Finlandia",region:"europe",div:1,coef:0.58,tier:4,flag:"🇫🇮"},
+  {name:"LNBP",country:"Portugal 1ª",region:"europe",div:1,coef:0.57,tier:4,flag:"🇵🇹"},
+  {name:"Belarusian BL",country:"Bielorrusia",region:"europe",div:1,coef:0.57,tier:4,flag:"🇧🇾"},
+  {name:"NLa",country:"Suiza",region:"europe",div:1,coef:0.57,tier:4,flag:"🇨🇭"},
+  {name:"NBL Rep. Checa",country:"Rep. Checa",region:"europe",div:1,coef:0.59,tier:4,flag:"🇨🇿"},
+  {name:"ABL",country:"Austria",region:"europe",div:1,coef:0.56,tier:4,flag:"🇦🇹"},
+  {name:"Superleague Georgia",country:"Georgia",region:"europe",div:1,coef:0.56,tier:4,flag:"🇬🇪"},
+  {name:"LNBM Rumanía",country:"Rumanía",region:"europe",div:1,coef:0.56,tier:4,flag:"🇷🇴"},
+  {name:"NB I/A",country:"Hungría",region:"europe",div:1,coef:0.55,tier:4,flag:"🇭🇺"},
+  {name:"Süper Lig Azerbaiyán",country:"Azerbaiyán",region:"europe",div:1,coef:0.53,tier:4,flag:"🇦🇿"},
+  {name:"Superleague Armenia",country:"Armenia",region:"europe",div:1,coef:0.51,tier:4,flag:"🇦🇲"},
+  {name:"Superleague Eslovaquia",country:"Eslovaquia",region:"europe",div:1,coef:0.55,tier:4,flag:"🇸🇰"},
+  {name:"Primera División Croacia",country:"Croacia",region:"europe",div:1,coef:0.57,tier:4,flag:"🇭🇷"},
+  {name:"LBM Bulgaria",country:"Bulgaria",region:"europe",div:1,coef:0.54,tier:4,flag:"🇧🇬"},
+  {name:"Prva Liga Eslovenia",country:"Eslovenia",region:"europe",div:1,coef:0.57,tier:4,flag:"🇸🇮"},
+  {name:"Virsliga Letonia",country:"Letonia",region:"europe",div:1,coef:0.55,tier:4,flag:"🇱🇻"},
+  {name:"Eesti Korvpalliliit",country:"Estonia",region:"europe",div:1,coef:0.52,tier:4,flag:"🇪🇪"},
+  {name:"BLNO",country:"Noruega",region:"europe",div:1,coef:0.54,tier:4,flag:"🇳🇴"},
+  {name:"Liga Macedonia",country:"Macedonia del N.",region:"europe",div:1,coef:0.54,tier:4,flag:"🇲🇰"},
+  {name:"Basketligaen",country:"Dinamarca",region:"europe",div:1,coef:0.55,tier:4,flag:"🇩🇰"},
+  {name:"Interliga Bosnia",country:"Bosnia",region:"europe",div:1,coef:0.54,tier:4,flag:"🇧🇦"},
+  {name:"Liga Albania",country:"Albania",region:"europe",div:1,coef:0.48,tier:4,flag:"🇦🇱"},
+  {name:"Liga Kosovo",country:"Kosovo",region:"europe",div:1,coef:0.47,tier:4,flag:"🇽🇰"},
+  {name:"Cyprus Basketball League",country:"Chipre",region:"europe",div:1,coef:0.53,tier:4,flag:"🇨🇾"},
+  // ---- SEGUNDAS DIVISIONES EUROPA ----
+  {name:"LEB Oro",country:"España 2ª",region:"europe",div:2,coef:0.68,tier:3,flag:"🇪🇸"},
+  {name:"LEB Plata",country:"España 3ª",region:"europe",div:2,coef:0.55,tier:4,flag:"🇪🇸"},
+  {name:"Serie A2 (Este+Oeste)",country:"Italia 2ª",region:"europe",div:2,coef:0.62,tier:3,flag:"🇮🇹"},
+  {name:"Pro B (Francia 2ª)",country:"Francia 2ª",region:"europe",div:2,coef:0.63,tier:3,flag:"🇫🇷"},
+  {name:"BSL 2. Lig",country:"Turquía 2ª",region:"europe",div:2,coef:0.65,tier:3,flag:"🇹🇷"},
+  {name:"ProA (Alemania 2ª)",country:"Alemania 2ª",region:"europe",div:2,coef:0.61,tier:3,flag:"🇩🇪"},
+  {name:"HEBA A2",country:"Grecia 2ª",region:"europe",div:2,coef:0.62,tier:3,flag:"🇬🇷"},
+  {name:"Liga 2 (Portugal)",country:"Portugal 2ª",region:"europe",div:2,coef:0.47,tier:4,flag:"🇵🇹"},
+  {name:"ABA 2 Liga",country:"Adriático 2ª",region:"europe",div:2,coef:0.55,tier:4,flag:"🌍"},
+  {name:"BKL (Lituania 2ª)",country:"Lituania 2ª",region:"europe",div:2,coef:0.52,tier:4,flag:"🇱🇹"},
+  {name:"II Liga Polska",country:"Polonia 2ª",region:"europe",div:2,coef:0.50,tier:4,flag:"🇵🇱"},
+  {name:"Supercopa Israel 2ª",country:"Israel 2ª",region:"europe",div:2,coef:0.58,tier:4,flag:"🇮🇱"},
+  {name:"NB I/B (Hungría 2ª)",country:"Hungría 2ª",region:"europe",div:2,coef:0.44,tier:4,flag:"🇭🇺"},
+  {name:"Liga 2 Serbia",country:"Serbia 2ª",region:"europe",div:2,coef:0.50,tier:4,flag:"🇷🇸"},
+  {name:"Superleague 2 Ucrania",country:"Ucrania 2ª",region:"europe",div:2,coef:0.48,tier:4,flag:"🇺🇦"},
+  {name:"2. Bundesliga Suiza",country:"Suiza 2ª",region:"europe",div:2,coef:0.46,tier:4,flag:"🇨🇭"},
+  {name:"Regio Basket (Alemania 3ª)",country:"Alemania 3ª",region:"europe",div:2,coef:0.52,tier:4,flag:"🇩🇪"},
+  {name:"Nazionale (Italia 3ª)",country:"Italia 3ª",region:"europe",div:2,coef:0.52,tier:4,flag:"🇮🇹"},
+  {name:"NM1 Francia 3ª",country:"Francia 3ª",region:"europe",div:2,coef:0.54,tier:4,flag:"🇫🇷"},
+  // ---- AMÉRICAS ----
+  {name:"G League",country:"EE.UU.",region:"americas",div:1,coef:0.74,tier:2,flag:"🇺🇸"},
+  {name:"NCAA División I",country:"EE.UU.",region:"americas",div:1,coef:0.65,tier:3,flag:"🇺🇸"},
+  {name:"NCAA División II",country:"EE.UU.",region:"americas",div:2,coef:0.50,tier:4,flag:"🇺🇸"},
+  {name:"NCAA División III",country:"EE.UU.",region:"americas",div:2,coef:0.40,tier:4,flag:"🇺🇸"},
+  {name:"NAIA",country:"EE.UU.",region:"americas",div:2,coef:0.42,tier:4,flag:"🇺🇸"},
+  {name:"BSN",country:"Puerto Rico",region:"americas",div:1,coef:0.58,tier:4,flag:"🇵🇷"},
+  {name:"NBL Brasil",country:"Brasil",region:"americas",div:1,coef:0.62,tier:3,flag:"🇧🇷"},
+  {name:"NBB (Liga Brasil)",country:"Brasil",region:"americas",div:1,coef:0.60,tier:3,flag:"🇧🇷"},
+  {name:"La Liga Argentina",country:"Argentina",region:"americas",div:1,coef:0.60,tier:3,flag:"🇦🇷"},
+  {name:"TNA Argentina",country:"Argentina 2ª",region:"americas",div:2,coef:0.50,tier:4,flag:"🇦🇷"},
+  {name:"LNBP",country:"México",region:"americas",div:1,coef:0.55,tier:4,flag:"🇲🇽"},
+  {name:"CIBACOPA",country:"México 2ª",region:"americas",div:2,coef:0.45,tier:4,flag:"🇲🇽"},
+  {name:"Asociación Chihuahua",country:"México Regional",region:"americas",div:2,coef:0.38,tier:4,flag:"🇲🇽"},
+  {name:"LNB Chile",country:"Chile",region:"americas",div:1,coef:0.52,tier:4,flag:"🇨🇱"},
+  {name:"Liga Desarrollo Chile",country:"Chile 2ª",region:"americas",div:2,coef:0.40,tier:4,flag:"🇨🇱"},
+  {name:"SuperLiga Venezuela",country:"Venezuela",region:"americas",div:1,coef:0.52,tier:4,flag:"🇻🇪"},
+  {name:"LNB Uruguay",country:"Uruguay",region:"americas",div:1,coef:0.50,tier:4,flag:"🇺🇾"},
+  {name:"Liga Colombia",country:"Colombia",region:"americas",div:1,coef:0.50,tier:4,flag:"🇨🇴"},
+  {name:"LNB Perú",country:"Perú",region:"americas",div:1,coef:0.45,tier:4,flag:"🇵🇪"},
+  {name:"Liga Bolivia",country:"Bolivia",region:"americas",div:1,coef:0.42,tier:4,flag:"🇧🇴"},
+  {name:"Liga Ecuador",country:"Ecuador",region:"americas",div:1,coef:0.43,tier:4,flag:"🇪🇨"},
+  {name:"Liga Paraguay",country:"Paraguay",region:"americas",div:1,coef:0.44,tier:4,flag:"🇵🇾"},
+  {name:"Liga Panamá",country:"Panamá",region:"americas",div:1,coef:0.42,tier:4,flag:"🇵🇦"},
+  {name:"Liga Cuba",country:"Cuba",region:"americas",div:1,coef:0.44,tier:4,flag:"🇨🇺"},
+  {name:"Liga Rep. Dominicana",country:"Rep. Dominicana",region:"americas",div:1,coef:0.48,tier:4,flag:"🇩🇴"},
+  {name:"LBAPR (Puerto Rico 2ª)",country:"Puerto Rico 2ª",region:"americas",div:2,coef:0.46,tier:4,flag:"🇵🇷"},
+  // ---- ASIA / PACÍFICO ----
+  {name:"NBL Australia",country:"Australia",region:"asia",div:1,coef:0.68,tier:3,flag:"🇦🇺"},
+  {name:"NBL1 (Australia 2ª)",country:"Australia 2ª",region:"asia",div:2,coef:0.53,tier:4,flag:"🇦🇺"},
+  {name:"CBA",country:"China",region:"asia",div:1,coef:0.63,tier:3,flag:"🇨🇳"},
+  {name:"CUBA (China Univ.)",country:"China 2ª",region:"asia",div:2,coef:0.48,tier:4,flag:"🇨🇳"},
+  {name:"B.League",country:"Japón",region:"asia",div:1,coef:0.60,tier:3,flag:"🇯🇵"},
+  {name:"B2.League",country:"Japón 2ª",region:"asia",div:2,coef:0.47,tier:4,flag:"🇯🇵"},
+  {name:"KBL",country:"Corea del Sur",region:"asia",div:1,coef:0.58,tier:4,flag:"🇰🇷"},
+  {name:"KBL D League",country:"Corea del Sur 2ª",region:"asia",div:2,coef:0.44,tier:4,flag:"🇰🇷"},
+  {name:"PBA",country:"Filipinas",region:"asia",div:1,coef:0.57,tier:4,flag:"🇵🇭"},
+  {name:"PBA D-League",country:"Filipinas 2ª",region:"asia",div:2,coef:0.43,tier:4,flag:"🇵🇭"},
+  {name:"P.LEAGUE+",country:"Taiwán",region:"asia",div:1,coef:0.53,tier:4,flag:"🇹🇼"},
+  {name:"T1 League Taiwán",country:"Taiwán 2ª",region:"asia",div:2,coef:0.45,tier:4,flag:"🇹🇼"},
+  {name:"ASEAN BL",country:"ASEAN",region:"asia",div:1,coef:0.50,tier:4,flag:"🌏"},
+  {name:"SBL Tailandia",country:"Tailandia",region:"asia",div:1,coef:0.45,tier:4,flag:"🇹🇭"},
+  {name:"Liga Indonesia",country:"Indonesia",region:"asia",div:1,coef:0.43,tier:4,flag:"🇮🇩"},
+  {name:"MPBL Malasia",country:"Malasia",region:"asia",div:1,coef:0.42,tier:4,flag:"🇲🇾"},
+  {name:"UBL India",country:"India",region:"asia",div:1,coef:0.40,tier:4,flag:"🇮🇳"},
+  {name:"NZNBL Nueva Zelanda",country:"Nueva Zelanda",region:"asia",div:1,coef:0.55,tier:4,flag:"🇳🇿"},
+  {name:"SEABA",country:"Sudeste Asiático",region:"asia",div:1,coef:0.44,tier:4,flag:"🌏"},
+  // ---- ÁFRICA / MEDITERRÁNEO ----
+  {name:"LBL Líbano",country:"Líbano",region:"africa",div:1,coef:0.50,tier:4,flag:"🇱🇧"},
+  {name:"Superliga Qatar",country:"Qatar",region:"africa",div:1,coef:0.48,tier:4,flag:"🇶🇦"},
+  {name:"Superliga EAU",country:"Emiratos Árabes",region:"africa",div:1,coef:0.47,tier:4,flag:"🇦🇪"},
+  {name:"BAL FIBA Africa",country:"África",region:"africa",div:1,coef:0.52,tier:4,flag:"🌍"},
+  {name:"Angola Probasket",country:"Angola",region:"africa",div:1,coef:0.48,tier:4,flag:"🇦🇴"},
+  {name:"Superliga Egipto",country:"Egipto",region:"africa",div:1,coef:0.46,tier:4,flag:"🇪🇬"},
+  {name:"Superliga Túnez",country:"Túnez",region:"africa",div:1,coef:0.47,tier:4,flag:"🇹🇳"},
+  {name:"Superliga Arabia Saudí",country:"Arabia Saudí",region:"africa",div:1,coef:0.48,tier:4,flag:"🇸🇦"},
+  {name:"SuperLiga Marruecos",country:"Marruecos",region:"africa",div:1,coef:0.44,tier:4,flag:"🇲🇦"},
+  {name:"NSL Nigeria",country:"Nigeria",region:"africa",div:1,coef:0.45,tier:4,flag:"🇳🇬"},
+  {name:"Camerún BL",country:"Camerún",region:"africa",div:1,coef:0.40,tier:4,flag:"🇨🇲"},
+  {name:"Senegal BL",country:"Senegal",region:"africa",div:1,coef:0.41,tier:4,flag:"🇸🇳"},
+  {name:"Liga Sudáfrica",country:"Sudáfrica",region:"africa",div:1,coef:0.43,tier:4,flag:"🇿🇦"},
+];
+
+// Add reliability scores if not present
+const REL_MAP = {1:0.96,2:0.88,3:0.70,4:0.52};
+leagues.forEach(l => { if(!l.rel) l.rel = REL_MAP[l.tier] || 0.50; });
+document.getElementById("sb-ligas").textContent = leagues.length+" ligas";
+document.getElementById("sb-divs").textContent = leagues.filter(l=>l.div===2).length+" 2ª div";
+document.getElementById("sb-divs").textContent = leagues.filter(l=>l.div===2).length+" con 2ª divisiones";
+
+const tierCfg = {
+  1:{bar:"#e8ff47",badge:"rgba(232,255,71,0.12)",text:"#e8ff47",label:"Élite"},
+  2:{bar:"#3dcc8e",badge:"rgba(61,204,142,0.12)",text:"#3dcc8e",label:"Alta"},
+  3:{bar:"#ffb347",badge:"rgba(255,179,71,0.12)",text:"#ffb347",label:"Media-alta"},
+  4:{bar:"#5a5a58",badge:"rgba(90,90,88,0.12)",text:"#888",label:"Media"},
+};
+
+const statDefs=[
+  {key:"pts", label:"Puntos (PPG)",   full:"Puntos / partido",      def:18,  note:"vol",     unit:""},
+  {key:"reb", label:"Rebotes (RPG)",  full:"Rebotes / partido",     def:7,   note:"vol",     unit:""},
+  {key:"ast", label:"Asistencias",    full:"Asistencias / partido", def:4,   note:"vol",     unit:""},
+  {key:"stl", label:"Robos (SPG)",    full:"Robos / partido",       def:1.2, note:"vol",     unit:""},
+  {key:"blk", label:"Tapones (BPG)",  full:"Tapones / partido",     def:0.8, note:"vol",     unit:""},
+  {key:"tov", label:"Pérdidas (TPG)", full:"Pérdidas / partido",    def:2.0, note:"vol_inv", unit:""},
+  {key:"fg",  label:"FG%",            full:"% Tiro de campo",       def:47,  note:"pct",     unit:"%"},
+  {key:"3p",  label:"3P%",            full:"% Triples",             def:36,  note:"pct",     unit:"%"},
+  {key:"ft",  label:"FT%",            full:"% Tiros libres",        def:78,  note:"pct",     unit:"%"},
+  {key:"ts",  label:"TS%",            full:"True Shooting %",       def:56,  note:"pct",     unit:"%"},
+  {key:"pir", label:"PIR / EFF",      full:"Índice valoración PIR", def:22,  note:"vol",     unit:""},
+  {key:"per", label:"PER",            full:"Player Efficiency Rat.",def:18,  note:"vol",     unit:""},
+];
+const lgAvgs={fg:46,"3p":35,ft:76,ts:55};
+const nbaAvgs={fg:47,"3p":36,ft:78,ts:57};
+
+function adjStat(raw,coef,note,key){
+  if(note==="pct"){
+    const la=lgAvgs[key]||50,na=nbaAvgs[key]||50;
+    return Math.max(0,Math.min(100,na+(raw-la)*coef));
+  }
+  return raw*coef;
+}
+
+/* ===================== LIGAS ===================== */
+let regionFilter="all";
+function setFilter(r,btn){
+  regionFilter=r;
+  document.querySelectorAll(".filter-btn").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  renderLeagues();
+}
+function renderLeagues(){
+  const q=(document.getElementById("search-input").value||"").toLowerCase();
+  const filtered=leagues.filter(l=>{
+    const mr=regionFilter==="all"||(regionFilter==="2nd"?l.div===2:l.region===regionFilter);
+    const ms=!q||l.name.toLowerCase().includes(q)||l.country.toLowerCase().includes(q);
+    return mr&&ms;
+  });
+  const tbody=document.getElementById("league-tbody");
+  if(!filtered.length){tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:30px">Sin resultados</td></tr>';return;}
+  tbody.innerHTML=filtered.map(l=>{
+    const tc=tierCfg[l.tier];
+    const bw=Math.round(l.coef*100);
+    return`<tr>
+      <td style="font-size:17px;padding-left:16px">${l.flag}</td>
+      <td style="font-weight:600">${l.name}</td>
+      <td style="color:var(--text2)">${l.country}</td>
+      <td><span class="div-badge">${l.div===2?"2ª div":"1ª div"}</span></td>
+      <td style="color:var(--text3);font-size:11px">${regionLabel(l.region)}</td>
+      <td><span class="tier-badge" style="background:${tc.badge};color:${tc.text}">${tc.label}</span></td>
+      <td class="coef-num" style="color:${tc.bar}">${l.coef.toFixed(2)}</td>
+      <td><span style="font-size:10px;color:${l.rel>=0.85?'#3dcc8e':l.rel>=0.65?'#ffb347':'#888'}">${l.rel>=0.85?"● Alta":l.rel>=0.65?"● Media":"○ Baja"}</span></td>
+      <td><div class="bar-bg"><div class="bar-fill" style="width:${bw}%;background:${tc.bar}"></div></div></td>
+    </tr>`;
+  }).join("");
+}
+function regionLabel(r){return{americas:"Américas",europe:"Europa",asia:"Asia/Pac.",africa:"África/Med."}[r]||r;}
+
+/* ===================== CALCULADORA ===================== */
+function buildCalcSelects(){
+  const s=document.getElementById("calc-league");
+  s.innerHTML=leagues.map(l=>`<option value="${l.coef}" data-name="${l.name}">${l.flag} ${l.name}</option>`).join("");
+}
+function buildStatInputs(){
+  document.getElementById("stats-inputs-grid").innerHTML=statDefs.map(s=>`
+    <div class="stat-inp-card">
+      <label>${s.label}</label>
+      <input type="number" id="si-${s.key}" value="${s.def}" min="0" step="0.1" oninput="calcUpdate()"/>
+    </div>`).join("");
+}
+function calcUpdate(){
+  const sel=document.getElementById("calc-league");
+  const coef=parseFloat(sel.value)||1;
+  const lname=sel.options[sel.selectedIndex]?.dataset?.name||"";
+  document.getElementById("calc-coef-disp").textContent=coef.toFixed(2);
+  document.getElementById("calc-coef-sub").textContent=lname;
+  const res=statDefs.map(s=>{
+    const raw=parseFloat(document.getElementById("si-"+s.key)?.value)||0;
+    const adj=adjStat(raw,coef,s.note,s.key);
+    return{...s,raw,adj};
+  });
+  document.getElementById("calc-results").innerHTML=res.map(r=>{
+    const delta=r.adj-r.raw;
+    const isInv=r.note==="vol_inv";
+    const good=isInv?delta<=0:delta>=0;
+    const dc=good?"var(--green)":"var(--red)";
+    const sign=delta>=0?"+":"";
+    const min36=parseFloat(document.getElementById("calc-min-per36")?.value)||0;
+    const showP36=document.getElementById("calc-show-per36")?.checked&&min36>0&&r.note!=="pct";
+    const p36val=showP36&&r.adj>0?r.adj/min36*36:null;
+    const pctNBA=getPct?.(r.adj,r.key);
+    return`<div class="result-card">
+      <div class="r-label">${r.label}</div>
+      <div class="r-raw">${r.raw.toFixed(1)}${r.unit}</div>
+      <div class="r-arrow">↓</div>
+      <div class="r-adj">${r.adj.toFixed(1)}${r.unit}</div>
+      <div class="r-delta" style="color:${dc}">${sign}${delta.toFixed(1)}${r.unit}</div>
+      ${pctNBA!==null?`<div style="font-size:9px;color:var(--text3);margin-top:3px;padding-top:3px;border-top:1px solid var(--border);font-family:'DM Mono',monospace">p${Math.round(pctNBA)} NBA</div>`:""}
+      ${p36val!==null?`<div style="font-size:9px;color:var(--text3);margin-top:1px;font-family:'DM Mono',monospace">per-36: ${p36val.toFixed(1)}</div>`:""}
+    </div>`;
+  }).join("");
+}
+
+/* ===================== PROYECCIÓN ===================== */
+let targetSelected=new Set();
+let projChart=null;
+let activeProjMetric="pts";
+
+function buildProjSelects(){
+  const s=document.getElementById("proj-src-league");
+  s.innerHTML=leagues.map(l=>`<option value="${l.name}">${l.flag} ${l.name} (${l.country})</option>`).join("");
+  // default ACB
+  const acbOpt=[...s.options].find(o=>o.textContent.includes("ACB"));
+  if(acbOpt) s.value=acbOpt.value;
+}
+function buildProjStatInputs(){
+  const c=document.getElementById("proj-stat-inputs");
+  c.innerHTML=statDefs.map(s=>`
+    <div class="proj-stat-row">
+      <label class="proj-stat-label">${s.full}</label>
+      <input type="number" class="proj-stat-val" id="psi-${s.key}" value="${s.def}" min="0" step="0.1" oninput="renderProjVisuals()"/>
+    </div>`).join("");
+}
+function buildProjMetricTabs(){
+  document.getElementById("proj-metric-tabs").innerHTML=statDefs.map(s=>`
+    <button class="proj-metric-btn${s.key===activeProjMetric?" active":""}" onclick="setProjMetric('${s.key}',this)">${s.label}</button>`).join("");
+}
+function setProjMetric(key,btn){
+  activeProjMetric=key;
+  document.querySelectorAll(".proj-metric-btn").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  renderChart();
+}
+function renderTargetLeagues(){
+  const q=(document.getElementById("proj-target-search").value||"").toLowerCase();
+  const srcName=document.getElementById("proj-src-league").value;
+  const container=document.getElementById("target-league-grid");
+  const visible=leagues.filter(l=>l.name!==srcName&&(!q||l.name.toLowerCase().includes(q)||l.country.toLowerCase().includes(q)));
+  container.innerHTML=visible.map(l=>{
+    const sel=targetSelected.has(l.name);
+    const tc=tierCfg[l.tier];
+    return`<div class="target-check-card${sel?" selected":""}" onclick="toggleTarget('${l.name}',this)">
+      <input type="checkbox" ${sel?"checked":""} onclick="event.stopPropagation();toggleTarget('${l.name}',this.parentElement)">
+      <div>
+        <div class="tc-name">${l.flag} ${l.name}</div>
+        <div class="tc-coef" style="color:${tc.bar}">${l.coef.toFixed(2)} · ${tc.label}</div>
+      </div>
+    </div>`;
+  }).join("");
+}
+function toggleTarget(name,card){
+  if(targetSelected.has(name)){targetSelected.delete(name);card.classList.remove("selected");card.querySelector("input").checked=false;}
+  else{if(targetSelected.size>=10){alert("Máximo 10 ligas destino");return;}targetSelected.add(name);card.classList.add("selected");card.querySelector("input").checked=true;}
+  renderProjVisuals();
+}
+function selectQuickTargets(mode){
+  const srcName=document.getElementById("proj-src-league").value;
+  const srcL=leagues.find(l=>l.name===srcName);
+  if(!srcL) return;
+  targetSelected.clear();
+  let picks;
+  if(mode==="top") picks=leagues.filter(l=>l.name!==srcName&&l.coef>=0.7).sort((a,b)=>b.coef-a.coef).slice(0,8);
+  else picks=leagues.filter(l=>l.name!==srcName&&Math.abs(l.coef-srcL.coef)<=0.12).slice(0,8);
+  picks.forEach(l=>targetSelected.add(l.name));
+  renderTargetLeagues();
+  renderProjVisuals();
+}
+function clearTargets(){targetSelected.clear();renderTargetLeagues();renderProjVisuals();}
+
+function getSrcStats(){
+  const stats={};
+  statDefs.forEach(s=>{stats[s.key]=parseFloat(document.getElementById("psi-"+s.key)?.value)||0;});
+  return stats;
+}
+function getAdjForLeague(srcCoef,tgtCoef,raw,note,key){
+  // Convert raw → NBA level → target league
+  const nbaVal=adjStat(raw,srcCoef,note,key);
+  if(note==="pct"){
+    const na=nbaAvgs[key]||50;
+    return Math.max(0,Math.min(100,na+(nbaVal-na)/tgtCoef));
+  }
+  return nbaVal/tgtCoef;
+}
+
+function renderProjVisuals(){
+  const srcName=document.getElementById("proj-src-league").value;
+  const srcL=leagues.find(l=>l.name===srcName);
+  if(!srcL) return;
+  const pname=document.getElementById("proj-player-name").value||"Jugador";
+  const srcStats=getSrcStats();
+  const targets=leagues.filter(l=>targetSelected.has(l.name));
+  const card=document.getElementById("proj-results-card");
+  if(!targets.length){card.style.display="none";return;}
+  card.style.display="";
+  document.getElementById("proj-src-badge").textContent=`⬡ ${pname} · ${srcL.flag} ${srcL.name} (${srcL.coef.toFixed(2)})`;
+  buildProjMetricTabs();
+  renderChart(srcL,targets,srcStats);
+  renderProjCards(srcL,targets,srcStats);
+}
+
+function renderChart(srcL,targets,srcStats){
+  // re-fetch if not passed
+  if(!srcL){
+    const srcName=document.getElementById("proj-src-league").value;
+    srcL=leagues.find(l=>l.name===srcName);
+    srcStats=getSrcStats();
+    targets=leagues.filter(l=>targetSelected.has(l.name));
+  }
+  const sDef=statDefs.find(s=>s.key===activeProjMetric);
+  const rawVal=srcStats[activeProjMetric]||0;
+  // Build data: source bar + target bars
+  const allLeagues=[srcL,...targets];
+  const labels=allLeagues.map(l=>l.name.length>18?l.name.slice(0,16)+"…":l.name);
+  const data=allLeagues.map((l,i)=>{
+    if(i===0) return parseFloat(rawVal.toFixed(2));
+    return parseFloat(getAdjForLeague(srcL.coef,l.coef,rawVal,sDef.note,sDef.key).toFixed(2));
+  });
+  const bgColors=allLeagues.map((l,i)=>{
+    if(i===0) return"rgba(232,255,71,0.85)";
+    const tc=tierCfg[l.tier];
+    return tc.bar+"cc";
+  });
+  const borderColors=allLeagues.map((l,i)=>i===0?"#e8ff47":tierCfg[l.tier].bar);
+  const canvas=document.getElementById("proj-chart");
+  if(projChart){projChart.destroy();projChart=null;}
+  projChart=new Chart(canvas,{
+    type:"bar",
+    data:{
+      labels,
+      datasets:[{
+        label:sDef.full,
+        data,
+        backgroundColor:bgColors,
+        borderColor:borderColors,
+        borderWidth:1.5,
+        borderRadius:4,
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          callbacks:{
+            title:ctx=>{const i=ctx[0].dataIndex;return allLeagues[i].name;},
+            label:ctx=>{
+              const v=ctx.parsed.y;
+              const raw=parseFloat(rawVal.toFixed(1));
+              const pct=((v-raw)/raw*100).toFixed(1);
+              const sign=v>=raw?"":"";
+              return[` ${sDef.full}: ${v.toFixed(1)}${sDef.unit}`,` vs origen: ${pct>=0?"+":""}${pct}%`];
+            }
+          },
+          backgroundColor:"#1e2026",borderColor:"rgba(255,255,255,0.1)",borderWidth:1,
+          titleColor:"#f0f0ee",bodyColor:"#9a9a96",
+        }
+      },
+      scales:{
+        x:{
+          ticks:{color:"#5a5a58",font:{size:11},maxRotation:40,autoSkip:false},
+          grid:{color:"rgba(255,255,255,0.04)"},border:{color:"rgba(255,255,255,0.07)"}
+        },
+        y:{
+          ticks:{color:"#5a5a58",font:{size:11}},
+          grid:{color:"rgba(255,255,255,0.05)"},border:{color:"rgba(255,255,255,0.07)"},
+          beginAtZero:true,
+        }
+      }
+    }
+  });
+}
+
+function renderProjCards(srcL,targets,srcStats){
+  const allLeagues=[srcL,...targets];
+  const grid=document.getElementById("proj-visual-grid");
+  // Show top 4 stats
+  const shownStats=statDefs.filter(s=>["pts","reb","ast","pir"].includes(s.key));
+  const maxVals={};
+  shownStats.forEach(s=>{
+    const vals=allLeagues.map((l,i)=>i===0?srcStats[s.key]:getAdjForLeague(srcL.coef,l.coef,srcStats[s.key],s.note,s.key));
+    maxVals[s.key]=Math.max(...vals);
+  });
+  grid.innerHTML=allLeagues.map((l,i)=>{
+    const isSource=i===0;
+    const rows=shownStats.map(s=>{
+      const val=isSource?srcStats[s.key]:getAdjForLeague(srcL.coef,l.coef,srcStats[s.key],s.note,s.key);
+      const pct=maxVals[s.key]>0?(val/maxVals[s.key]*100):0;
+      const tc=tierCfg[l.tier];
+      return`<div class="pvc-stat"><span class="pvc-stat-label">${s.label}</span><span class="pvc-stat-val" style="color:${isSource?"var(--accent)":tc.bar}">${val.toFixed(1)}${s.unit}</span></div>
+        <div class="pvc-bar" style="background:${isSource?"var(--accent)":tc.bar};width:${pct.toFixed(0)}%;opacity:0.3"></div>`;
+    }).join("");
+    return`<div class="proj-vis-card${isSource?" source-card":""}">
+      <div class="pvc-flag">${l.flag}</div>
+      <div class="pvc-name" title="${l.name}">${isSource?"★ ":""} ${l.name}</div>
+      <div class="pvc-coef">${l.coef.toFixed(2)} · ${isSource?"ORIGEN":tierCfg[l.tier].label}</div>
+      ${rows}
+    </div>`;
+  }).join("");
+}
+
+/* ===================== COMPARATIVA ===================== */
+let players=[],pid=0;
+const pColors=["#e8ff47","#3dcc8e","#4d9fff","#ff6b6b","#ffb347","#c084fc"];
+function addPlayer(){
+  if(players.length>=6) return;
+  const p={id:pid++,name:"Jugador "+(players.length+1),leagueCoef:leagues[0].coef,leagueName:leagues[0].name,stats:{}};
+  statDefs.forEach(s=>p.stats[s.key]=s.def);
+  players.push(p);renderPlayerCards();renderCompTable();
+}
+function removePlayer(id){players=players.filter(p=>p.id!==id);renderPlayerCards();renderCompTable();}
+function clearPlayers(){players=[];renderPlayerCards();renderCompTable();}
+function updatePName(id,v){const p=players.find(x=>x.id===id);if(p){p.name=v;renderCompTable();}}
+function updatePLeague(id,coef,name){const p=players.find(x=>x.id===id);if(p){p.leagueCoef=parseFloat(coef);p.leagueName=name;renderCompTable();}}
+function updatePStat(id,key,v){const p=players.find(x=>x.id===id);if(p){p.stats[key]=parseFloat(v)||0;renderCompTable();}}
+function getAdj(p,key){
+  const s=statDefs.find(x=>x.key===key);
+  return adjStat(p.stats[key]||0,p.leagueCoef,s.note,key);
+}
+function renderPlayerCards(){
+  const container=document.getElementById("player-cards-container");
+  container.innerHTML=players.map((p,i)=>{
+    const color=pColors[i%pColors.length];
+    const opts=leagues.map(l=>`<option value="${l.coef}" data-name="${l.name}"${Math.abs(l.coef-p.leagueCoef)<0.001&&l.name===p.leagueName?" selected":""}>${l.flag} ${l.name}</option>`).join("");
+    const statRows=statDefs.map(s=>`
+      <div class="player-stat-row">
+        <span class="player-stat-label">${s.label}</span>
+        <input class="player-stat-input" type="number" value="${(p.stats[s.key]||0).toFixed(1)}" step="0.1" min="0" onchange="updatePStat(${p.id},'${s.key}',this.value)"/>
+      </div>`).join("");
+    return`<div class="player-card">
+      <button class="remove-btn" onclick="removePlayer(${p.id})">×</button>
+      <div class="player-card-header">
+        <div class="player-num-badge" style="background:${color}22;color:${color}">${i+1}</div>
+        <input class="player-name-input" type="text" value="${p.name}" onchange="updatePName(${p.id},this.value)"/>
+      </div>
+      <select class="player-league-select" onchange="updatePLeague(${p.id},this.value,this.options[this.selectedIndex].dataset.name)">${opts}</select>
+      <div class="player-stat-scroll">${statRows}</div>
+    </div>`;
+  }).join("");
+  if(players.length<6){
+    const btn=document.createElement("button");
+    btn.className="add-player-btn";btn.onclick=addPlayer;btn.textContent="+ Añadir jugador";
+    container.appendChild(btn);
+  }
+}
+function renderCompTable(){
+  const container=document.getElementById("comp-table-container");
+  if(!players.length){container.innerHTML=`<div class="empty-state"><div class="icon">📋</div>Añade jugadores para ver la comparativa</div>`;return;}
+  const hc=players.map((p,i)=>`<th style="color:${pColors[i%pColors.length]};font-family:'Syne',sans-serif;font-size:12px">${p.name}<br><span style="font-size:10px;font-weight:400;color:var(--text3);font-family:'DM Mono',monospace">${p.leagueName.slice(0,20)} · ${p.leagueCoef.toFixed(2)}</span></th>`).join("");
+  const coefRow=`<tr style="background:var(--surface2)"><td style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace">COEFICIENTE</td>${players.map((p,i)=>`<td style="color:${pColors[i%pColors.length]};font-family:'DM Mono',monospace">${p.leagueCoef.toFixed(2)}</td>`).join("")}</tr>`;
+  const srows=statDefs.map(s=>{
+    const adjs=players.map(p=>getAdj(p,s.key));
+    const isInv=s.note==="vol_inv";
+    const best=isInv?Math.min(...adjs):Math.max(...adjs);
+    const cells=players.map((p,i)=>{
+      const color=pColors[i%pColors.length];
+      const adj=adjs[i];const raw=p.stats[s.key]||0;
+      const delta=adj-raw;const isBest=Math.abs(adj-best)<0.01;
+      return`<td ${isBest?`style="color:${color};font-weight:700"`:""}>
+        ${adj.toFixed(1)}${s.unit}
+        <div style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace">${delta>=0?"+":""}${delta.toFixed(1)}${s.unit}</div>
+      </td>`;
+    }).join("");
+    return`<tr><td>${s.full}</td>${cells}</tr>`;
+  }).join("");
+  container.innerHTML=`<div class="card"><div class="card-title">Comparativa ajustada — nivel NBA</div><div class="comp-table-wrap" style="overflow-x:auto"><table class="comp-table"><thead><tr><th style="text-align:left;min-width:170px">Métrica</th>${hc}</tr>${coefRow}</thead><tbody>${srows}</tbody></table></div><div style="margin-top:10px;font-size:11px;color:var(--text3);font-family:'DM Mono',monospace">Color = mejor valor ajustado por categoría. Número pequeño = diferencia vs. valor bruto de origen.</div></div>`;
+}
+
+/* ===================== FOTO ===================== */
+function updateInitials(){
+  const name=document.getElementById("proj-player-name").value||"?";
+  const parts=name.trim().split(/\s+/);
+  const initials=parts.length>=2?parts[0][0]+parts[parts.length-1][0]:parts[0].slice(0,2);
+  const el=document.getElementById("proj-photo-initials");
+  if(el) el.textContent=initials.toUpperCase();
+}
+function updatePlayerPhoto(){
+  const url=document.getElementById("proj-photo-url").value.trim();
+  const img=document.getElementById("proj-photo-img");
+  const ini=document.getElementById("proj-photo-initials");
+  if(!url){img.style.display="none";ini.style.display="";return;}
+  img.onload=()=>{img.style.display="block";ini.style.display="none";};
+  img.onerror=()=>{img.style.display="none";ini.style.display="";};
+  img.src=url;
+}
+function clearPlayerPhoto(){
+  document.getElementById("proj-photo-url").value="";
+  document.getElementById("proj-photo-img").style.display="none";
+  document.getElementById("proj-photo-initials").style.display="";
+}
+function searchPlayerPhotoGoogle(){
+  const name=document.getElementById("proj-player-name").value||"jugador baloncesto";
+  const q=encodeURIComponent(name+" baloncesto basketball player");
+  window.open("https://www.google.com/search?q="+q+"&tbm=isch","_blank");
+}
+
+/* ===================== PDF ===================== */
+async function generatePDF(){
+  const btn=document.getElementById("pdf-btn");
+  btn.classList.add("loading");btn.textContent="⏳ Generando...";
+  try{
+    const {jsPDF}=window.jspdf;
+    const doc=new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
+    const W=210,H=297;
+    const margin=14;
+    let y=margin;
+
+    // ─── palette (light for PDF) ───
+    const C={bg:[10,11,13],surf:[22,24,28],accent:[180,204,0],text:[240,240,238],
+              text2:[150,150,148],green:[50,170,120],amber:[220,160,60],
+              blue:[60,140,230],red:[220,90,90],gray:[80,80,80],white:[255,255,255],
+              dark:[20,22,26]};
+
+    // ─── header band ───
+    doc.setFillColor(...C.dark);
+    doc.rect(0,0,W,38,"F");
+    doc.setFillColor(...C.accent);
+    doc.rect(0,36,W,1.5,"F");
+
+    // logo text
+    doc.setFont("helvetica","bold");
+    doc.setFontSize(18);
+    doc.setTextColor(...C.white);
+    doc.text("🏀 SCOUTING TOOL",margin,16);
+    doc.setFontSize(8);
+    doc.setFont("helvetica","normal");
+    doc.setTextColor(...C.text2);
+    doc.text("Informe de proyección de jugador · "+new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"}),margin,22);
+
+    // ─── photo + player info ───
+    const photoUrl=document.getElementById("proj-photo-url").value.trim();
+    const playerName=document.getElementById("proj-player-name").value||"Jugador";
+    const srcName=document.getElementById("proj-src-league").value;
+    const srcL=leagues.find(l=>l.name===srcName);
+    const position=document.getElementById("proj-position").value||"—";
+    const age=document.getElementById("proj-age").value||"—";
+    const targets=leagues.filter(l=>targetSelected.has(l.name));
+    const srcStats=getSrcStats();
+
+    y=46;
+    const photoSize=28;
+    let photoAdded=false;
+
+    // Try to add photo
+    if(photoUrl){
+      try{
+        const imgData=await loadImageAsBase64(photoUrl);
+        if(imgData){
+          // circular clip via ellipse
+          doc.setFillColor(...C.surf);
+          doc.circle(margin+photoSize/2, y+photoSize/2, photoSize/2+1,"F");
+          doc.addImage(imgData,"JPEG",margin,y,photoSize,photoSize);
+          photoAdded=true;
+        }
+      }catch(e){}
+    }
+
+    // player info block
+    const infoX=photoAdded?margin+photoSize+8:margin;
+    doc.setFont("helvetica","bold");
+    doc.setFontSize(20);
+    doc.setTextColor(...C.white);
+    doc.text(playerName,infoX,y+8);
+    doc.setFont("helvetica","normal");
+    doc.setFontSize(10);
+    doc.setTextColor(...C.text2);
+    doc.text(`${srcL?srcL.flag+" ":""} Liga origen: ${srcName}  ·  Coef. ${srcL?srcL.coef.toFixed(2):"—"}`,infoX,y+16);
+    doc.text(`Posición: ${position}   ·   Edad: ${age}`,infoX,y+23);
+
+    // tier badge
+    if(srcL){
+      const tc=tierCfg[srcL.tier];
+      doc.setFontSize(8);
+      doc.setTextColor(200,200,200);
+      doc.text("Nivel: "+tc.label,infoX,y+30);
+    }
+
+    y+=photoSize+10;
+
+    // ─── STATS BRUTAS vs AJUSTADAS ───
+    doc.setFillColor(...C.accent);
+    doc.rect(margin,y,2,6,"F");
+    doc.setFont("helvetica","bold");
+    doc.setFontSize(10);
+    doc.setTextColor(...C.white);
+    doc.text("ESTADÍSTICAS — ORIGEN vs EQUIVALENTE NBA",margin+5,y+4.5);
+    y+=10;
+
+    if(srcL){
+      const statsTableData=statDefs.map(s=>{
+        const raw=srcStats[s.key]||0;
+        const adj=adjStat(raw,srcL.coef,s.note,s.key);
+        const delta=adj-raw;
+        const sign=delta>=0?"+":"";
+        return[s.full,raw.toFixed(1)+s.unit,adj.toFixed(1)+s.unit,sign+delta.toFixed(1)+s.unit];
+      });
+      doc.autoTable({
+        startY:y,
+        head:[["Métrica","Valor en liga origen","Equiv. NBA","Δ Diferencia"]],
+        body:statsTableData,
+        theme:"plain",
+        margin:{left:margin,right:margin},
+        styles:{font:"helvetica",fontSize:8.5,textColor:[200,200,200],cellPadding:{top:3,bottom:3,left:4,right:4},fillColor:[22,24,28]},
+        headStyles:{fillColor:[30,32,38],textColor:[150,150,148],fontSize:7.5,fontStyle:"bold"},
+        alternateRowStyles:{fillColor:[26,28,34]},
+        columnStyles:{2:{textColor:[180,204,0],fontStyle:"bold"},3:{textColor:[150,150,148]}},
+        tableLineColor:[40,42,50],tableLineWidth:0.3,
+      });
+      y=doc.lastAutoTable.finalY+10;
+    }
+
+    // ─── CHART IMAGE ───
+    const chartCanvas=document.getElementById("proj-chart");
+    if(chartCanvas && targets.length){
+      // Render chart with white bg for PDF
+      const tmpCanvas=document.createElement("canvas");
+      tmpCanvas.width=chartCanvas.width;tmpCanvas.height=chartCanvas.height;
+      const ctx2=tmpCanvas.getContext("2d");
+      ctx2.fillStyle="#16181c";ctx2.fillRect(0,0,tmpCanvas.width,tmpCanvas.height);
+      ctx2.drawImage(chartCanvas,0,0);
+      const chartImg=tmpCanvas.toDataURL("image/png");
+      const chartW=W-margin*2;
+      const chartH=chartW*(chartCanvas.height/chartCanvas.width);
+      if(y+chartH>H-20){doc.addPage();y=margin;}
+      doc.setFillColor(...C.accent);
+      doc.rect(margin,y,2,6,"F");
+      doc.setFont("helvetica","bold");
+      doc.setFontSize(10);
+      doc.setTextColor(...C.white);
+      const sDef=statDefs.find(s=>s.key===activeProjMetric);
+      doc.text("PROYECCIÓN VISUAL — "+sDef.full.toUpperCase(),margin+5,y+4.5);
+      y+=10;
+      doc.addImage(chartImg,"PNG",margin,y,chartW,Math.min(chartH,70));
+      y+=Math.min(chartH,70)+10;
+    }
+
+    // ─── PROJECTION TABLE ───
+    if(targets.length){
+      if(y>H-60){doc.addPage();y=margin;}
+      doc.setFillColor(...C.accent);
+      doc.rect(margin,y,2,6,"F");
+      doc.setFont("helvetica","bold");
+      doc.setFontSize(10);
+      doc.setTextColor(...C.white);
+      doc.text("TABLA DE PROYECCIÓN POR LIGA DESTINO",margin+5,y+4.5);
+      y+=10;
+
+      const shownStats=["pts","reb","ast","stl","blk","tov","fg","3p","ft","pir","per"];
+      const head=[["Métrica",...targets.map(l=>l.name.slice(0,14))]];
+      const body=shownStats.map(key=>{
+        const s=statDefs.find(x=>x.key===key);
+        if(!s) return null;
+        const raw=srcStats[key]||0;
+        return[s.full,...targets.map(l=>{
+          const adj=getAdjForLeague(srcL?srcL.coef:1,l.coef,raw,s.note,key);
+          const delta=adj-raw;
+          return adj.toFixed(1)+s.unit+(delta>=0?" (+"+delta.toFixed(1)+")":"("+delta.toFixed(1)+")");
+        })];
+      }).filter(Boolean);
+
+      doc.autoTable({
+        startY:y,
+        head,body,
+        theme:"plain",
+        margin:{left:margin,right:margin},
+        styles:{font:"helvetica",fontSize:7.5,textColor:[200,200,200],cellPadding:{top:2.5,bottom:2.5,left:3,right:3},fillColor:[22,24,28],overflow:"linebreak"},
+        headStyles:{fillColor:[30,32,38],textColor:[150,150,148],fontSize:7,fontStyle:"bold"},
+        alternateRowStyles:{fillColor:[26,28,34]},
+        columnStyles:{0:{textColor:[160,160,160],fontStyle:"bold"}},
+        tableLineColor:[40,42,50],tableLineWidth:0.3,
+      });
+      y=doc.lastAutoTable.finalY+8;
+    }
+
+    // ─── footer ───
+    const pages=doc.internal.getNumberOfPages();
+    for(let i=1;i<=pages;i++){
+      doc.setPage(i);
+      doc.setFillColor(16,18,22);
+      doc.rect(0,H-10,W,10,"F");
+      doc.setFont("helvetica","normal");
+      doc.setFontSize(7);
+      doc.setTextColor(60,62,68);
+      doc.text("🏀 Scouting Tool — Coeficientes de Liga · Baloncesto",margin,H-3.5);
+      doc.text("Pág. "+i+"/"+pages,W-margin,H-3.5,{align:"right"});
+    }
+
+    const fileName=(playerName.replace(/\s+/g,"_")+"_scouting_"+new Date().toISOString().slice(0,10)+".pdf");
+    doc.save(fileName);
+  }catch(err){
+    console.error("PDF error:",err);
+    alert("Error al generar PDF: "+err.message);
+  }
+  btn.classList.remove("loading");btn.textContent="⬇ Descargar informe PDF";
+}
+
+function loadImageAsBase64(url){
+  return new Promise((resolve)=>{
+    const img=new Image();
+    img.crossOrigin="anonymous";
+    img.onload=()=>{
+      try{
+        const c=document.createElement("canvas");
+        c.width=img.width;c.height=img.height;
+        c.getContext("2d").drawImage(img,0,0);
+        resolve(c.toDataURL("image/jpeg",0.85));
+      }catch(e){resolve(null);}
+    };
+    img.onerror=()=>resolve(null);
+    img.src=url;
+    setTimeout(()=>resolve(null),5000);
+  });
+}
+
+/* ===================== NAV ===================== */
+function showSection(id,btn){
+  document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
+  document.querySelectorAll(".nav-btn").forEach(b=>b.classList.remove("active"));
+  document.getElementById("sec-"+id).classList.add("active");
+  btn.classList.add("active");
+}
+
+/* ===================== INIT ===================== */
+renderLeagues();
+buildCalcSelects();
+buildStatInputs();
+calcUpdate();
+buildProjSelects();
+buildProjStatInputs();
+buildProjMetricTabs();
+renderTargetLeagues();
+renderCompTable();
+updateInitials();
+
+/* ===================== NEW V5 FEATURES ===================== */
+
+/* --- NBA percentile data --- */
+const NBA_PCT = {
+  pts:[7,11,16,21], reb:[2.5,4,6,8.5], ast:[1.5,2.5,4.5,7],
+  stl:[0.5,0.8,1.2,1.7], blk:[0.2,0.5,0.9,1.6], tov:[1,1.8,2.5,3.2],
+  fg:[42,46,50,54], "3p":[30,35,39,43], ft:[70,77,83,88],
+  ts:[50,55,59,64], pir:[10,16,22,30], per:[10,14,18,22]
+};
+function getPct(val,k){
+  const p=NBA_PCT[k]; if(!p) return null;
+  const thresholds=[0,p[0],p[1],p[2],p[3],p[3]*1.3];
+  const pctiles=[0,25,50,75,90,99];
+  for(let i=1;i<thresholds.length;i++){
+    if(val<=thresholds[i]){
+      const span=(thresholds[i]-thresholds[i-1]);
+      if(span<=0) return pctiles[i-1];
+      return pctiles[i-1]+(val-thresholds[i-1])/span*(pctiles[i]-pctiles[i-1]);
+    }
+  }
+  return 99;
+}
+
+/* --- Position adjustment multipliers --- */
+const POS_ADJ = {
+  PG:  {ast:1.15, reb:0.92, tov:1.05},
+  SG:  {pts:1.05, ast:0.90},
+  SF:  {},
+  PF:  {reb:1.10, blk:1.10, ast:0.85},
+  C:   {reb:1.20, blk:1.20, pts:0.88, ast:0.75, fg:1.05}
+};
+function applyPosAdj(val, pos, key) {
+  if(!pos || !POS_ADJ[pos]) return val;
+  return val * (POS_ADJ[pos][key] || 1);
+}
+
+/* --- Per-36 calculation --- */
+function per36(rawStat, minutes) {
+  if(!minutes || minutes <= 0) return null;
+  return rawStat / minutes * 36;
+}
+
+/* --- Star discount check --- */
+function checkDiscount() {
+  const srcName = document.getElementById("proj-src-league").value;
+  const srcL = leagues.find(l => l.name === srcName);
+  if(!srcL) return;
+  const stats = getSrcStats();
+  let infCount = 0;
+  statDefs.forEach(s => {
+    if(s.note === "pct") return;
+    const a = adjStat(stats[s.key] || 0, srcL.coef, s.note, s.key);
+    const med = NBA_PCT[s.key]?.[1] || 0;
+    if(med > 0 && a > med * 1.45 && s.key !== "tov") infCount++;
+  });
+  const el = document.getElementById("proj-discount-top");
+  if(infCount >= 3 && srcL.tier >= 3) {
+    el.style.display = "block";
+    el.innerHTML = "⚠️ <b>Star discount:</b> " + infCount + " métricas muy superiores a la mediana NBA al ajustar. En ligas tier " + srcL.tier + " puede indicar stats infladas. Considera reducir el coeficiente un 5–10% adicional.";
+  } else {
+    el.style.display = "none";
+  }
+}
+
+/* --- Enhanced renderProjVisuals with all v5 features --- */
+const _origRenderProjVisuals = renderProjVisuals;
+function renderProjVisuals() {
+  _origRenderProjVisuals();
+  const srcName = document.getElementById("proj-src-league").value;
+  const srcL = leagues.find(l => l.name === srcName);
+  if(!srcL) return;
+  const targets = leagues.filter(l => targetSelected.has(l.name));
+  if(!targets.length) return;
+  const srcStats = getSrcStats();
+  renderRadarChart(srcL, targets, srcStats);
+  renderCurveChart(srcL, srcStats);
+  renderPctBars(srcL, targets, srcStats);
+  document.getElementById("radar-grid").style.display = "";
+  document.getElementById("pct-section").style.display = "";
+}
+
+/* --- RADAR CHART --- */
+let radarChartInst = null;
+function renderRadarChart(srcL, targets, srcStats) {
+  const pos = document.getElementById("proj-pos")?.value || "";
+  const usePosAdj = document.getElementById("proj-posadj")?.checked || false;
+  const radarKeys = ["pts","reb","ast","stl","blk","fg"];
+  const radarLabels = radarKeys.map(k => {
+    const s = statDefs.find(x => x.key === k); return s ? s.label : k;
+  });
+  const allLeagues = [srcL, ...targets.slice(0, 5)];
+  const colors = ["#e8ff47","#3dcc8e","#4d9fff","#ff6b6b","#ffb347","#c084fc"];
+  
+  const datasets = allLeagues.map((l, i) => {
+    const isSrc = i === 0;
+    const data = radarKeys.map(k => {
+      const s = statDefs.find(x => x.key === k);
+      if(!s) return 0;
+      const raw = srcStats[k] || 0;
+      let adjV = isSrc ? adjStat(raw, srcL.coef, s.note, k) : getAdjForLeague(srcL.coef, l.coef, raw, s.note, k);
+      if(usePosAdj && pos && !isSrc) adjV = applyPosAdj(adjV, pos, k);
+      const pctVal = getPct(adjV, k);
+      return parseFloat((pctVal !== null ? pctVal : 0).toFixed(1));
+    });
+    const c = colors[i % colors.length];
+    return {
+      label: l.name.length > 16 ? l.name.slice(0,14)+"…" : l.name,
+      data, borderColor: c, backgroundColor: c+"20",
+      borderWidth: isSrc ? 2.5 : 1.5, pointBackgroundColor: c, pointRadius: 3
+    };
+  });
+
+  const canvas = document.getElementById("radar-chart");
+  if(radarChartInst) { radarChartInst.destroy(); radarChartInst = null; }
+  radarChartInst = new Chart(canvas, {
+    type: "radar",
+    data: { labels: radarLabels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: { r: {
+        min: 0, max: 100,
+        ticks: { display: false, stepSize: 25 },
+        grid: { color: "rgba(128,128,128,0.1)" },
+        angleLines: { color: "rgba(128,128,128,0.1)" },
+        pointLabels: { color: "#9a9a96", font: { size: 10 } }
+      }},
+      plugins: { legend: { display: true, labels: { color: "#9a9a96", font: { size: 10 }, boxWidth: 10, padding: 8 }}}
+    }
+  });
+}
+
+/* --- DEVELOPMENT CURVE --- */
+let curveChartInst = null;
+function renderCurveChart(srcL, srcStats) {
+  const ageRaw = document.getElementById("proj-age")?.value;
+  const curveCol = document.getElementById("curve-col");
+  if(!ageRaw) { if(curveCol) curveCol.style.display="none"; return; }
+  const age = parseInt(ageRaw);
+  if(age < 15 || age > 45) { if(curveCol) curveCol.style.display="none"; return; }
+  if(curveCol) curveCol.style.display = "";
+  
+  const pts = srcStats["pts"] || 0;
+  const adjNow = adjStat(pts, srcL.coef, "vol", "pts");
+  const PEAK = 27;
+  const years = [];
+  for(let y = Math.max(15, age - 2); y <= Math.min(42, age + 12); y++) years.push(y);
+  
+  const vals = years.map(y => {
+    let mult;
+    if(y <= PEAK) mult = 1 + Math.max(0, (y - age)) * 0.025;
+    else mult = 1 - (y - PEAK) * 0.016;
+    mult = Math.max(0.25, mult);
+    return parseFloat((adjNow * mult).toFixed(1));
+  });
+  
+  const nowIdx = years.indexOf(age);
+  const ptColors = years.map((_, i) => i === nowIdx ? "#e8ff47" : "rgba(88,90,100,0.6)");
+  const ptSizes = years.map((_, i) => i === nowIdx ? 7 : 2);
+  
+  const canvas = document.getElementById("curve-chart");
+  if(curveChartInst) { curveChartInst.destroy(); curveChartInst = null; }
+  curveChartInst = new Chart(canvas, {
+    type: "line",
+    data: {
+      labels: years,
+      datasets: [{
+        data: vals,
+        borderColor: "#e8ff47", backgroundColor: "rgba(232,255,71,0.08)",
+        borderWidth: 2, pointRadius: ptSizes, pointBackgroundColor: ptColors, tension: 0.4, fill: true
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: c => "Edad: " + years[c[0].dataIndex],
+            label: c => " PPG equiv. NBA: " + c.parsed.y.toFixed(1)
+          },
+          backgroundColor: "#1e2026", titleColor: "#f0f0ee", bodyColor: "#9a9a96"
+        }
+      },
+      scales: {
+        x: { ticks: { color: "#5a5a58", font: { size: 10 }}, grid: { color: "rgba(128,128,128,0.06)" }, border: { color: "rgba(128,128,128,0.1)" }},
+        y: { ticks: { color: "#5a5a58", font: { size: 10 }}, grid: { color: "rgba(128,128,128,0.06)" }, border: { color: "rgba(128,128,128,0.1)" }, beginAtZero: false}
+      }
+    }
+  });
+  
+  const yearsToMaestro = Math.max(0, PEAK - age);
+  const noteEl = document.getElementById("curve-note");
+  if(noteEl) noteEl.textContent = age < PEAK
+    ? `★ Peak proyectado ~${PEAK} años · ${yearsToMaestro} temporadas de crecimiento`
+    : `Jugador post-peak · ${age - PEAK} años tras su mejor momento estimado`;
+}
+
+/* --- PERCENTILE BARS --- */
+function renderPctBars(srcL, targets, srcStats) {
+  const pos = document.getElementById("proj-pos")?.value || "";
+  const usePosAdj = document.getElementById("proj-posadj")?.checked || false;
+  const shown = ["pts","reb","ast","stl","blk","fg","3p","pir"];
+  const allLeagues = [srcL, ...targets.slice(0,5)];
+  const colors = ["#e8ff47","#3dcc8e","#4d9fff","#ff6b6b","#ffb347","#c084fc"];
+  
+  const html = shown.map(k => {
+    const sd = statDefs.find(s => s.key === k); if(!sd) return "";
+    const rows = allLeagues.map((l, i) => {
+      const isSrc = i === 0;
+      const raw = srcStats[k] || 0;
+      let v = isSrc ? adjStat(raw, srcL.coef, sd.note, k) : getAdjForLeague(srcL.coef, l.coef, raw, sd.note, k);
+      if(usePosAdj && pos && !isSrc) v = applyPosAdj(v, pos, k);
+      const pct = Math.min(99, Math.max(0, getPct(v, k) || 0));
+      const c = colors[i % colors.length];
+      return `<div class="pct-row">
+        <span class="pct-label" style="color:${c};font-size:10px">${l.name.length>16?l.name.slice(0,14)+"…":l.name}</span>
+        <div class="pct-bar-wrap"><div class="pct-bar-fill" style="width:${pct.toFixed(0)}%;background:${c}"></div></div>
+        <span class="pct-val" style="color:${c}">${v.toFixed(1)}${sd.u} · p${Math.round(pct)}</span>
+      </div>`;
+    }).join("");
+    return `<div style="margin-bottom:10px"><div style="font-size:10px;font-weight:500;color:var(--text2);margin-bottom:5px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.05em">${sd.full}</div>${rows}</div>`;
+  }).join("");
+  
+  document.getElementById("pct-bars").innerHTML = html;
+}
+
+/* ===================== PERFILES ===================== */
+function saveProfile() {
+  const name = document.getElementById("proj-player-name").value || "Jugador";
+  const src = document.getElementById("proj-src-league").value;
+  const pos = document.getElementById("proj-pos")?.value || "";
+  const age = document.getElementById("proj-age")?.value || "";
+  const notes = document.getElementById("proj-notes")?.value || "";
+  const photo = document.getElementById("proj-photo-url")?.value || "";
+  const stats = getSrcStats();
+  
+  let profiles = JSON.parse(localStorage.getItem("scouting_profiles") || "[]");
+  const idx = profiles.findIndex(p => p.name === name);
+  const p = {name, src, pos, age, notes, photo, stats, saved: new Date().toISOString()};
+  if(idx >= 0) profiles[idx] = p; else profiles.unshift(p);
+  localStorage.setItem("scouting_profiles", JSON.stringify(profiles));
+  updateProfileCount();
+  renderProfiles();
+  
+  const btn = event.target;
+  const orig = btn.textContent;
+  btn.textContent = "✓ Guardado!";
+  btn.style.background = "var(--green)";
+  setTimeout(() => { btn.textContent = orig; btn.style.background = ""; }, 1800);
+}
+
+function loadProfile(name) {
+  const profiles = JSON.parse(localStorage.getItem("scouting_profiles") || "[]");
+  const p = profiles.find(x => x.name === name); if(!p) return;
+  
+  document.getElementById("proj-player-name").value = p.name || "";
+  const srcSel = document.getElementById("proj-src-league");
+  const opt = [...srcSel.options].find(o => o.value === p.src || o.text.includes(p.src));
+  if(opt) srcSel.value = opt.value;
+  
+  if(document.getElementById("proj-pos")) document.getElementById("proj-pos").value = p.pos || "";
+  if(document.getElementById("proj-age")) document.getElementById("proj-age").value = p.age || "";
+  if(document.getElementById("proj-notes")) document.getElementById("proj-notes").value = p.notes || "";
+  if(document.getElementById("proj-photo-url")) {
+    document.getElementById("proj-photo-url").value = p.photo || "";
+    if(p.photo) updatePlayerPhoto();
+  }
+  updateInitials();
+  
+  statDefs.forEach(s => {
+    const el = document.getElementById("psi-" + s.key);
+    if(el && p.stats[s.key] !== undefined) el.value = p.stats[s.key];
+  });
+  
+  checkDiscount();
+  renderProjVisuals();
+  
+  // Navigate to projection tab
+  const btn = document.querySelector('.nav-btn[onclick*="proyeccion"]');
+  if(btn) showSection("proyeccion", btn);
+}
+
+function deleteProfile(name, ev) {
+  ev.stopPropagation();
+  if(!confirm("¿Eliminar perfil de " + name + "?")) return;
+  let profiles = JSON.parse(localStorage.getItem("scouting_profiles") || "[]");
+  profiles = profiles.filter(p => p.name !== name);
+  localStorage.setItem("scouting_profiles", JSON.stringify(profiles));
+  updateProfileCount();
+  renderProfiles();
+}
+
+function clearAllProfiles() {
+  if(!confirm("¿Borrar todos los perfiles guardados?")) return;
+  localStorage.removeItem("scouting_profiles");
+  updateProfileCount();
+  renderProfiles();
+}
+
+function updateProfileCount() {
+  const profiles = JSON.parse(localStorage.getItem("scouting_profiles") || "[]");
+  const sb = document.getElementById("sb-profiles");
+  if(sb) sb.textContent = profiles.length + " perfiles";
+  const ct = document.getElementById("prof-count");
+  if(ct) ct.textContent = "(" + profiles.length + ")";
+}
+
+function renderProfiles() {
+  const profiles = JSON.parse(localStorage.getItem("scouting_profiles") || "[]");
+  updateProfileCount();
+  const grid = document.getElementById("profiles-grid"); if(!grid) return;
+  if(!profiles.length) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text3);padding:48px;font-size:13px">No hay perfiles guardados.<br>Ve a Proyección → introduce datos → pulsa <b>Guardar perfil</b>.</div>';
+    return;
+  }
+  grid.innerHTML = profiles.map(p => {
+    const league = leagues.find(l => l.name === p.src);
+    const initials = (p.name||"J").trim().split(/\s+/).map(w=>w[0]||"").slice(0,2).join("").toUpperCase();
+    const photoHtml = p.photo
+      ? `<img src="${p.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block" onerror="this.style.display='none'">`
+      : initials;
+    const safeName = p.name.replace(/'/g, "\'");
+    return `<div class="prfl-card" onclick="loadProfile('${safeName}')">
+      <button class="prfl-del" onclick="deleteProfile('${safeName}', event)">✕</button>
+      <div class="prfl-photo">${photoHtml}</div>
+      <div class="prfl-name">${p.name}</div>
+      <div class="prfl-meta">${league ? league.flag + " " : ""}${p.src||"—"} ${p.pos ? "· "+p.pos : ""} ${p.age ? "· "+p.age+" años" : ""}</div>
+      <div class="prfl-stats">
+        <span class="prfl-stat">PPG ${(p.stats.pts||0).toFixed(1)}</span>
+        <span class="prfl-stat">RPG ${(p.stats.reb||0).toFixed(1)}</span>
+        <span class="prfl-stat">APG ${(p.stats.ast||0).toFixed(1)}</span>
+      </div>
+      ${p.notes ? `<div style="font-size:10px;color:var(--text3);margin-top:6px;line-height:1.5;font-style:italic">${p.notes.slice(0,90)}${p.notes.length>90?"…":""}</div>` : ""}
+      <div class="prfl-date">${new Date(p.saved).toLocaleDateString("es-ES",{day:"2-digit",month:"short",year:"numeric"})}</div>
+    </div>`;
+  }).join("");
+}
+
+/* ===================== CSV IMPORT ===================== */
+function handleCSVFile(e) { parseCSVFile(e.target.files[0]); }
+function handleCSVDrop(e) {
+  e.preventDefault();
+  document.getElementById("csv-drop").classList.remove("over");
+  if(e.dataTransfer.files[0]) parseCSVFile(e.dataTransfer.files[0]);
+}
+function parseCSVFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    const lines = e.target.result.split(/\r?\n/).filter(l => l.trim());
+    if(lines.length < 2) { alert("CSV sin datos válidos"); return; }
+    const headers = lines[0].toLowerCase().split(",").map(h => h.trim().replace(/"/g,""));
+    const gi = key => headers.indexOf(key);
+    const profiles = JSON.parse(localStorage.getItem("scouting_profiles") || "[]");
+    let imported = 0;
+    lines.slice(1).forEach(line => {
+      const cols = line.split(",").map(c => c.trim().replace(/"/g,""));
+      const name = cols[gi("nombre")] || cols[0]; if(!name || name === "undefined") return;
+      const stats = {};
+      ["pts","reb","ast","stl","blk","tov","fg","3p","ft","ts","pir","per"].forEach(k => {
+        const ci = gi(k); if(ci >= 0 && cols[ci]) stats[k] = parseFloat(cols[ci]) || 0;
+      });
+      const p = {
+        name, src: cols[gi("liga")] || "NBA",
+        pos: cols[gi("posicion")] || "", age: cols[gi("edad")] || "",
+        notes: cols[gi("notas")] || "", photo: cols[gi("foto")] || "",
+        stats, saved: new Date().toISOString()
+      };
+      const idx = profiles.findIndex(x => x.name === name);
+      if(idx >= 0) profiles[idx] = p; else profiles.push(p);
+      imported++;
+    });
+    localStorage.setItem("scouting_profiles", JSON.stringify(profiles));
+    renderProfiles();
+    alert("✓ " + imported + " jugadores importados correctamente");
+  };
+  reader.readAsText(file);
+}
+
+/* ===================== LIGHT/DARK THEME ===================== */
+function toggleTheme() {
+  const html = document.documentElement;
+  const isDark = html.getAttribute("data-theme") === "dark";
+  const newTheme = isDark ? "light" : "dark";
+  html.setAttribute("data-theme", newTheme);
+  const btn = document.getElementById("theme-btn");
+  if(btn) btn.textContent = newTheme === "dark" ? "🌙" : "☀️";
+  localStorage.setItem("scouting_theme", newTheme);
+}
+(function initTheme() {
+  const saved = localStorage.getItem("scouting_theme") || "dark";
+  document.documentElement.setAttribute("data-theme", saved);
+  document.addEventListener("DOMContentLoaded", () => {
+    const btn = document.getElementById("theme-btn");
+    if(btn) btn.textContent = saved === "dark" ? "🌙" : "☀️";
+  });
+})();
+
+/* ===================== INIT CALL ===================== */
+renderProfiles();
+updateProfileCount();
+
+</script>
+</body>
+</html>
